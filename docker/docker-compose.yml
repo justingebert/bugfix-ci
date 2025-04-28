@@ -1,0 +1,12 @@
+services:
+    agent:
+        image: bugfix-ci:dev
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile
+        volumes:
+            - ../:/workspace
+        environment:
+            OPENAI_API_KEY: ${OPENAI_API_KEY}
+            GITHUB_TOKEN: ${GITHUB_TOKEN}
+            CONFIG_FILE: /workspace/config/bugfix.yml

@@ -22,4 +22,5 @@ jobs:
           GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker run --rm \
-            ghcr.io/justingebert/bugfix-ci:latest
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            ghcr.io/your-user/bugfix-agent:latest

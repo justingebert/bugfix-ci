@@ -1,0 +1,25 @@
+name: BugFix Agent
+on:
+  workflow_dispatch: {}
+  # schedule:
+  #   - cron: "30 3 * * *"
+
+jobs:
+  bugfix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # allow PR push
+      pull-requests: write
+      packages: read           # pull image
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull latest agent image
+        run: docker pull ghcr.io/justingebert/bugfix-ci:latest
+
+      - name: Run agent as if we were a consumer
+        env:
+          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run --rm \
+            ghcr.io/ustingebert/bugfix-ci:latest

@@ -22,4 +22,4 @@ jobs:
           GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker run --rm \
-            ghcr.io/ustingebert/bugfix-ci:latest
+            ghcr.io/justingebert/bugfix-ci:latest

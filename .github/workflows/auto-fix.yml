@@ -8,16 +8,16 @@ jobs:
   bugfix:
     runs-on: ubuntu-latest
     permissions:
-      contents: write          # allow PR push
+      contents: write
       pull-requests: write
-      packages: read           # pull image
+      packages: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pull latest agent image
+      - name: Pull latest image
         run: docker pull ghcr.io/justingebert/bugfix-ci:latest
 
-      - name: Run agent as if we were a consumer
+      - name: Run agent
         env:
           GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
         run: |

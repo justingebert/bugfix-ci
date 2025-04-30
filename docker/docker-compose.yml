@@ -6,7 +6,7 @@ services:
             dockerfile: docker/Dockerfile
         volumes:
             - ../:/workspace
+        env_file:
+            -   ../.env
         environment:
-            OPENAI_API_KEY: ${OPENAI_API_KEY}
-            GITHUB_TOKEN: ${GITHUB_TOKEN}
             CONFIG_FILE: /workspace/config/bugfix.yml

@@ -16,3 +16,5 @@ _Small-LLM, multi-stage bot that **finds, patches & PRs bugs** in your repositor
 
 1. **Add a workflow** to your repo at `.github/workflows/auto-fix.yml`:
 
+## Development
+.env for envrioment variables

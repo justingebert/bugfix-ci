@@ -1,4 +1,0 @@
-labels: ["bug_v01"]
-workdir: "datasets/quixbugs"
-# max_attempts: 3
-# max_duration: 120

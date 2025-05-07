@@ -1,7 +1,7 @@
 from github import Github, Issue
 import os, sys
 
-def _get_repo() -> "github.Repository.Repository":
+def get_repo() -> "github.Repository.Repository":
     token = os.getenv("GITHUB_TOKEN")
     repo  = os.getenv("GITHUB_REPO")
     if not token or not repo:
@@ -9,7 +9,7 @@ def _get_repo() -> "github.Repository.Repository":
     return Github(token).get_repo(repo)
 
 def get_bug() -> Issue.Issue:
-    repo = _get_repo()
+    repo = get_repo()
     manual = os.getenv("ISSUE_NUMBER")
     label = os.getenv("LABEL")
     if manual:

@@ -4,11 +4,11 @@ _Small-LLM, multi-stage bot that **finds, patches & PRs bugs** in your repositor
 ---
 
 ## Features
-| ✅ | Description |
-|----|-------------|
-| **Drop-in**        | Copy a 15-line GitHub Actions workflow → the agent starts running in CI. |
+| ✅ | Description                                                                             |
+|----|-----------------------------------------------------------------------------------------|
+| **Drop-in**        | Copy a GitHub Actions workflow → the agent starts running in CI.                        |
 | **Tool-augmented** | Fault localisation, patch synthesis, test-run & security scan inside **one** container. |
-| **Cost-aware**     | Uses GPT-3.5 / open-source models by default; optional GPT-4 fallback with cost cap. |
+| **Cost-aware**     | Uses X models by default; optional X fallback with cost cap.                            |
 
 ---
 

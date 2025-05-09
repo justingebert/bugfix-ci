@@ -1,17 +1,16 @@
-import importlib, os, pathlib, sys, json
+import os, sys
 from pprint import pprint
 
 from agent_core.issue_helper import get_bug
-from dotenv import load_dotenv
 from agent_core.util import load_cfg, resolve_stage
 
-local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else "workspace"
+local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else ""
 
 def main():
 
     cfg = load_cfg(local_work_space)
     bug = get_bug()
-    stages = ["localize", "fix", "build", "test"] #, "report"]
+    stages = ["localize", "fix", "build", "test", "apply", "report"]
 
     ctx = {
         "bug": bug,

@@ -29,14 +29,12 @@ class Report(Stage):
             pr_body = f"This PR fixes issue #{issue_number}\n\n"
             pr_body += "## Changes\n"
 
-            #information about fixed files
             fixed_files = ctx.get("fixed_files", [])
             if fixed_files:
                 pr_body += "### Modified files:\n"
                 for file_path in fixed_files:
                     pr_body += f"- `{file_path}`\n"
 
-            # test results if available
             test_results = ctx.get("test_results", {})
             if test_results:
                 pr_body += "\n### Test Results\n"

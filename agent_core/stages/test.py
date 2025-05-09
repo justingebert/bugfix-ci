@@ -1,3 +1,4 @@
+import os
 import pathlib, datetime
 import subprocess
 
@@ -41,9 +42,16 @@ class Test(Stage):
             if test_path.exists():
                 print(f"[{self.name}] Running specific test: {test_path}")
                 try:
-                    cmd = ["python", "-m", "pytest", str(test_path), "-v"]
+                    parent_dir = test_path.parent.parent
+
+                    cmd = [
+                        "cd", str(parent_dir), "&&",
+                        "python", "-m", "pytest",
+                        str(test_path.relative_to(parent_dir)), "-v"
+                    ]
                     print(f"[{self.name}] Executing command: {' '.join(cmd)}")
-                    process = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
+                    process = subprocess.run(" ".join(cmd), shell=True, capture_output=True, text=True, check=False,
+                                             timeout=30)
                     success = process.returncode == 0
                     stdout = process.stdout
                     stderr = process.stderr

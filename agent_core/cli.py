@@ -1,9 +1,11 @@
 import importlib, os, pathlib, sys, json
+from pprint import pprint
+
 from agent_core.issue_helper import get_bug
 from dotenv import load_dotenv
 from agent_core.util import load_cfg, resolve_stage
 
-local_work_space = "../workspace" if os.getenv("ENV") == "dev-deployed" else "workspace"
+local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else "workspace"
 
 def main():
 
@@ -23,7 +25,7 @@ def main():
         ctx = stage_cls().run(ctx)
 
     print("== DONE ==")
-    print(ctx)
+    pprint(ctx, indent=2)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,9 @@ services:
             context: ..
             dockerfile: docker/Dockerfile
         volumes:
-            - ../:/workspace
+            - ../workspace/:/workspace
         env_file:
             -   ../.env
         environment:
             CONFIG_FILE: /workspace/config/bugfix.yml
+#        entrypoint: ["sh", "-c", "tail -f /dev/null"] #for attaching and debugging

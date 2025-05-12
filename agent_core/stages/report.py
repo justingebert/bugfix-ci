@@ -1,5 +1,5 @@
 from agent_core.stage import Stage
-from agent_core.issue_helper import get_repo
+from agent_core.tools.issue_helper import get_repo
 
 
 class Report(Stage):

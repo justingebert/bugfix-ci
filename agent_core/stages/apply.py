@@ -14,7 +14,7 @@ class Apply(Stage):
             return ctx
 
         issue_number = bug.number
-        branch_name = f"{issue_number}-fix"
+        branch_name = f"fix-{issue_number}"
 
         fixed_files = ctx.get("fixed_files", [])
         if not fixed_files:
@@ -65,7 +65,6 @@ class Apply(Stage):
                 subprocess.run(["git", "remote", "set-url", "origin", auth_remote], capture_output=True, check=True)
                 print(f"[{self.name}] Configured authentication for push")
 
-            # Push with authentication
             push_result = subprocess.run(["git", "push", "origin", branch_name], capture_output=True, text=True)
 
             # Reset remote URL to original (for security)

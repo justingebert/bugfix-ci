@@ -8,14 +8,23 @@ class Report(Stage):
     def run(self, ctx):
         print(f"[{self.name}] Creating PR for the bug fix")
 
+        bug = ctx.get("bug")
+        if not bug:
+            print(f"[{self.name}] No bug information found. Skipping report.")
+            return ctx
+
         apply_results = ctx.get("apply_results", {})
         if apply_results.get("status") != "success":
             print(f"[{self.name}] Apply stage was not successful. Skipping PR creation.")
             return ctx
 
-        bug = ctx.get("bug")
-        if not bug:
-            print(f"[{self.name}] No bug information found. Skipping report.")
+        branch_name = apply_results.get("branch")
+        if not branch_name:
+            print(f"[{self.name}] Branch name not found in apply_results. Skipping report.")
+            ctx["report_results"] = {
+                "status": "failure",
+                "message": "Branch name not found after apply stage."
+            }
             return ctx
 
         issue_number = bug.number
@@ -23,10 +32,11 @@ class Report(Stage):
 
         try:
             repo = get_repo()
+            repo_owner_login = repo.owner.login
 
             pr_title = f"Fix for issue #{issue_number}: {bug.title}"
 
-            pr_body = f"This PR fixes issue #{issue_number}\n\n"
+            pr_body = f"fixes #{issue_number}\n\n"
             pr_body += "## Changes\n"
 
             fixed_files = ctx.get("fixed_files", [])
@@ -40,22 +50,39 @@ class Report(Stage):
                 pr_body += "\n### Test Results\n"
                 pr_body += f"Status: {test_results.get('status', 'Unknown')}\n"
 
-            pr = repo.create_pull(
-                title=pr_title,
-                body=pr_body,
-                head=branch_name,
-                base="main"
-            )
+            existing_pr = None
+            head_branch_ref = f"{repo_owner_login}:{branch_name}"
+            open_pulls = repo.get_pulls(state='open', head=head_branch_ref, base='main')
+            if open_pulls.totalCount > 0:
+                existing_pr = open_pulls[0]
 
-            print(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
+            if existing_pr:
+                print(f"[{self.name}] Found existing PR #{existing_pr.number}. Updating it.")
+                existing_pr.edit(title=pr_title, body=pr_body)
+                # existing_pr.create_issue_comment("This PR has been automatically updated with the latest fixes.")
+                pr = existing_pr
+                action = "updated"
+                print(f"[{self.name}] Successfully updated PR #{pr.number}: {pr_title}")
+            else:
+                print(f"[{self.name}] Creating new PR for branch '{branch_name}' into 'main'.")
+                pr = repo.create_pull(
+                    title=pr_title,
+                    body=pr_body,
+                    head=branch_name,
+                    base="main"
+                )
+                action = "created"
+                print(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
+
             ctx["report_results"] = {
                 "status": "success",
                 "pr_number": pr.number,
-                "pr_url": pr.html_url
+                "pr_url": pr.html_url,
+                "action": action
             }
 
         except Exception as e:
-            print(f"[{self.name}] Error creating PR: {str(e)}")
+            print(f"[{self.name}] Error creating/updating PR: {str(e)}")
             ctx["report_results"] = {"status": "failure", "message": str(e)}
 
         return ctx

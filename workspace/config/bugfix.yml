@@ -1,5 +1,6 @@
 labels: ["bug_v01"]
 workdir: "workspace/datasets/quixbugs/python_programs"
 test_cmd: "pytest"
+branchprefix: "fix"
 # max_attempts: 3
 # max_duration: 120

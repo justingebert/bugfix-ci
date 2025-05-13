@@ -18,3 +18,10 @@ def get_bug() -> Issue.Issue:
     for issue in repo.get_issues(state="open", labels=[label]):
         return issue
     sys.exit(f"❌  No open issues with label '{label}'")
+
+def get_issues() -> list[Issue.Issue]:
+    repo = get_repo()
+    label = os.getenv("LABEL")
+    if not label:
+        sys.exit("❌  LABEL env var is required ❌")
+    return [issue for issue in repo.get_issues(state="open", labels=[label])]

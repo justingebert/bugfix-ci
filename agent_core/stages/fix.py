@@ -1,14 +1,17 @@
 import os
 import pathlib
+import logging
 from agent_core.stage import Stage
 from google import genai
 from google.genai import types
+
+from agent_core.tools.file_tools import clean_code_from_llm_response
 
 
 class Fix(Stage):
     name = "fix"
     def run(self, ctx):
-        print(ctx.get("source_files"))
+        logging.info(ctx.get("source_files"))
         file_path = pathlib.Path(ctx.get("source_files")[0])
         if not file_path:
             raise RuntimeError(f"[{self.name}] no source files found in context")
@@ -28,12 +31,14 @@ class Fix(Stage):
                 system_instruction="You are part of an automated bug-fixing system. Please return the complete, corrected raw source file, never use any markdown formatting."),
             contents=prompt,
         )
-        fixed_code = response.text
+        raw_response = response.text
 
-        print(f" [{self.name}] LLM response: {fixed_code}")
+        fixed_code = clean_code_from_llm_response(raw_response, original_code)
+
+        logging.info(f" [{self.name}] LLM response: {fixed_code}")
 
         file_path.write_text(fixed_code)
-        print(f"[{self.name}] wrote fixed code back to {file_path}")
+        logging.info(f"[{self.name}] wrote fixed code back to {file_path}")
 
         ctx["fixed_files"] = [str(file_path)]
         return ctx

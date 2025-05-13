@@ -1,5 +1,5 @@
-import importlib
-import pathlib, yaml
+import importlib, logging, pathlib, yaml
+from datetime import datetime
 
 def _read_yaml(path: pathlib.Path) -> dict:
     with open(path) as fh:
@@ -38,3 +38,33 @@ def resolve_stage(name: str):
         raise RuntimeError(f"Stage '{name}': Class '{class_name}' missing in {module_path}") from e
     return stage_cls
 
+
+def setup_logging(issue_number):
+    """Configure logging to write to both console and file"""
+    # Create logs directory
+    log_dir = pathlib.Path("/workspace/logs")
+    print(f"Creating log directory at: {log_dir.absolute()}")
+    log_dir.mkdir(exist_ok=True, parents=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"issue_{issue_number}_{timestamp}.log"
+
+    # Reset handlers (in case this function is called multiple times)
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # Configure file and console handlers
+    file_handler = logging.FileHandler(log_file)
+    console_handler = logging.StreamHandler()
+
+    formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+    return log_dir, log_file

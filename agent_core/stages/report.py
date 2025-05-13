@@ -1,26 +1,26 @@
 from agent_core.stage import Stage
 from agent_core.tools.issue_helper import get_repo
-
+import logging
 
 class Report(Stage):
     name = "report"
 
     def run(self, ctx):
-        print(f"[{self.name}] Creating PR for the bug fix")
+        logging.info(f"[{self.name}] Creating PR for the bug fix")
 
         bug = ctx.get("bug")
         if not bug:
-            print(f"[{self.name}] No bug information found. Skipping report.")
+            logging.info(f"[{self.name}] No bug information found. Skipping report.")
             return ctx
 
         apply_results = ctx.get("apply_results", {})
         if apply_results.get("status") != "success":
-            print(f"[{self.name}] Apply stage was not successful. Skipping PR creation.")
+            logging.info(f"[{self.name}] Apply stage was not successful. Skipping PR creation.")
             return ctx
 
         branch_name = apply_results.get("branch")
         if not branch_name:
-            print(f"[{self.name}] Branch name not found in apply_results. Skipping report.")
+            logging.info(f"[{self.name}] Branch name not found in apply_results. Skipping report.")
             ctx["report_results"] = {
                 "status": "failure",
                 "message": "Branch name not found after apply stage."
@@ -57,14 +57,14 @@ class Report(Stage):
                 existing_pr = open_pulls[0]
 
             if existing_pr:
-                print(f"[{self.name}] Found existing PR #{existing_pr.number}. Updating it.")
+                logging.info(f"[{self.name}] Found existing PR #{existing_pr.number}. Updating it.")
                 existing_pr.edit(title=pr_title, body=pr_body)
                 # existing_pr.create_issue_comment("This PR has been automatically updated with the latest fixes.")
                 pr = existing_pr
                 action = "updated"
-                print(f"[{self.name}] Successfully updated PR #{pr.number}: {pr_title}")
+                logging.info(f"[{self.name}] Successfully updated PR #{pr.number}: {pr_title}")
             else:
-                print(f"[{self.name}] Creating new PR for branch '{branch_name}' into 'main'.")
+                logging.info(f"[{self.name}] Creating new PR for branch '{branch_name}' into 'main'.")
                 pr = repo.create_pull(
                     title=pr_title,
                     body=pr_body,
@@ -72,7 +72,7 @@ class Report(Stage):
                     base="main"
                 )
                 action = "created"
-                print(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
+                logging.info(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
 
             ctx["report_results"] = {
                 "status": "success",
@@ -82,7 +82,7 @@ class Report(Stage):
             }
 
         except Exception as e:
-            print(f"[{self.name}] Error creating/updating PR: {str(e)}")
+            logging.info(f"[{self.name}] Error creating/updating PR: {str(e)}")
             ctx["report_results"] = {"status": "failure", "message": str(e)}
 
         return ctx

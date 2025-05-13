@@ -1,5 +1,5 @@
 import pathlib, re
-
+import logging
 from agent_core.cli import local_work_space
 from agent_core.stage import Stage
 from agent_core.tools.repo_tools import find_file, print_dir_tree
@@ -29,7 +29,7 @@ class Localize(Stage):
         if not src_path:
             raise RuntimeError(f"[{self.name}] {base_name}.py not found in repo")
 
-        print(f"[{self.name}] found {base_name}.py in {src_path}")
+        logging.info(f"[{self.name}] found {base_name}.py in {src_path}")
         ctx["source_files"] = [str(src_path)]
-        print(f"[{self.name}] {ctx}")
+        logging.info(f"[{self.name}] {ctx}")
         return ctx

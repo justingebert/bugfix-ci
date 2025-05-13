@@ -1,25 +1,25 @@
 import os
 import pathlib, datetime
 import subprocess
+import logging
 
 from agent_core.cli import local_work_space
 from agent_core.stage import Stage
-
 
 class Test(Stage):
     name = "test"
 
     def run(self, ctx):
-        print(f"[{self.name}] running tests for fixed files")
+        logging.info(f"[{self.name}] running tests for fixed files")
         fixed_files = ctx.get("fixed_files", [])
         if not fixed_files:
-            print(f"[{self.name}] No fixed files found to test.")
+            logging.info(f"[{self.name}] No fixed files found to test.")
             ctx["test_results"] = {"status": "skipped", "message": "No fixed files"}
             return ctx
 
         test_cmd = ctx.get("cfg", {}).get("test_cmd")
         if not test_cmd:
-            print(f"[{self.name}] No test_cmd provided in config. Skipping tests.")
+            logging.info(f"[{self.name}] No test_cmd provided in config. Skipping tests.")
             ctx["test_results"] = {"status": "skipped", "message": "No test_cmd in config"}
             return ctx
 
@@ -29,7 +29,7 @@ class Test(Stage):
             file_path = pathlib.Path(file_path_str)
             file_name = file_path.stem
 
-            print(f"[{self.name}] Testing {file_name}...")
+            logging.info(f"[{self.name}] Testing {file_name}...")
 
             # For QuixBugs: run the specific test for this file
             test_file = f"test_{file_name}.py"
@@ -40,7 +40,7 @@ class Test(Stage):
 
             # If the specific test file exists, run it
             if test_path.exists():
-                print(f"[{self.name}] Running specific test: {test_path}")
+                logging.info(f"[{self.name}] Running specific test: {test_path}")
                 try:
                     parent_dir = test_path.parent.parent
 
@@ -49,7 +49,7 @@ class Test(Stage):
                         "python", "-m", "pytest",
                         str(test_path.relative_to(parent_dir)), "-v"
                     ]
-                    print(f"[{self.name}] Executing command: {' '.join(cmd)}")
+                    logging.info(f"[{self.name}] Executing command: {' '.join(cmd)}")
                     process = subprocess.run(" ".join(cmd), shell=True, capture_output=True, text=True, check=False,
                                              timeout=30)
                     success = process.returncode == 0
@@ -64,10 +64,10 @@ class Test(Stage):
                     stdout = ""
                     stderr = f"Error running test: {str(e)}"
             else:
-                print(f"[{self.name}] No specific test file found. Running general tests.")
+                logging.info(f"[{self.name}] No specific test file found. Running general tests.")
                 try:
                     cmd = test_cmd.split()
-                    print(f"[{self.name}] Executing command: {' '.join(cmd)}")
+                    logging.info(f"[{self.name}] Executing command: {' '.join(cmd)}")
                     process = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
                     success = process.returncode == 0
                     stdout = process.stdout
@@ -90,11 +90,11 @@ class Test(Stage):
 
             if not success:
                 test_results["status"] = "failure"
-                print(f"[{self.name}] Tests failed for {file_name}.")
-                print(f"[{self.name}] stdout: {stdout}")
-                print(f"[{self.name}] stderr: {stderr}")
+                logging.info(f"[{self.name}] Tests failed for {file_name}.")
+                logging.info(f"[{self.name}] stdout: {stdout}")
+                logging.info(f"[{self.name}] stderr: {stderr}")
             else:
-                print(f"[{self.name}] Tests passed for {file_name}.")
+                logging.info(f"[{self.name}] Tests passed for {file_name}.")
 
             test_results["details"].append(test_detail)
 

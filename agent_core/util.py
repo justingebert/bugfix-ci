@@ -11,15 +11,15 @@ def load_cfg(local_work_space="workspace") -> dict:
     default_path = pathlib.Path("agent_core/default-config.yml")
     if default_path.exists():
         cfg |= _read_yaml(default_path)
-        print(f"[info] loaded default config from {default_path}")
+        logging.info(f"[info] loaded default config from {default_path}")
     else:
-        print(f"[warn] default config file {default_path} not found; using built-ins.")
+        logging.info(f"[warn] default config file {default_path} not found; using built-ins.")
 
     env_path = pathlib.Path(local_work_space) / "workspace" / "config" / "bugfix.yml"
     if env_path.exists():
         cfg |= _read_yaml(env_path)
     else:
-        print(f"[warn] config file {env_path} not found; "
+        logging.info(f"[warn] config file {env_path} not found; "
               f"using {default_path.name if default_path.exists() else 'built-ins'}.")
     return cfg
 
@@ -43,7 +43,7 @@ def setup_logging(issue_number):
     """Configure logging to write to both console and file"""
     # Create logs directory
     log_dir = pathlib.Path("/workspace/logs")
-    print(f"Creating log directory at: {log_dir.absolute()}")
+    logging.info(f"Creating log directory at: {log_dir.absolute()}")
     log_dir.mkdir(exist_ok=True, parents=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

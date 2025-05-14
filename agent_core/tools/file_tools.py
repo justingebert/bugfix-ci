@@ -1,4 +1,4 @@
-
+import re
 def clean_code_from_llm_response(response_text, original_code):
     """Clean markdown formatting from LLM response."""
     # First try to extract code from markdown code blocks

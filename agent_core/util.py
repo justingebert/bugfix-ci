@@ -68,3 +68,51 @@ def setup_logging(issue_number):
     root_logger.addHandler(console_handler)
 
     return log_dir, log_file
+
+import difflib
+
+def generate_feedback(ctx):
+    """Generate feedback from test results and code changes for the next fix attempt"""
+    test_results = ctx.get("test_results", {})
+    test_details = test_results.get("details", [])
+    attempt = ctx["metrics"]["current_attempt"]
+
+    feedback = f"Previous fix attempt #{attempt} failed. "
+
+    # Add test failure information
+    if test_details:
+        failures = [d for d in test_details if d.get("status") == "failure"]
+        if failures:
+            feedback += "Test failures:\n"
+            for failure in failures:
+                feedback += f"- File: {failure.get('file')}\n"
+                if failure.get('stdout'):
+                    feedback += f"  Stdout: {failure.get('stdout')}\n"
+                if failure.get('stderr'):
+                    feedback += f"  Stderr: {failure.get('stderr')}\n"
+
+    # Add diff from the original code to the current version
+    original_code = ctx.get("original_code")
+    current_code = ""
+    if ctx.get("fixed_files"):
+        file_path = ctx.get("fixed_files")[0]
+        with open(file_path, 'r') as f:
+            current_code = f.read()
+
+    if original_code and current_code:
+        diff = difflib.unified_diff(
+            original_code.splitlines(keepends=True),
+            current_code.splitlines(keepends=True),
+            fromfile='original',
+            tofile='current',
+            n=3
+        )
+        diff_text = ''.join(diff)
+
+        if diff_text:
+            feedback += "\nChanges made in the previous attempt:\n"
+            feedback += "```diff\n"
+            feedback += diff_text
+            feedback += "```\n"
+
+    return feedback

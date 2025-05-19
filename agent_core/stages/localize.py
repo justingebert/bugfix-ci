@@ -31,5 +31,9 @@ class Localize(Stage):
 
         logging.info(f"[{self.name}] found {base_name}.py in {src_path}")
         ctx["source_files"] = [str(src_path)]
+
+        with open(src_path, 'r') as f:
+            ctx["original_code"] = f.read()
+
         logging.info(f"[{self.name}] {ctx}")
         return ctx

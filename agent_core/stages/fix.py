@@ -18,11 +18,22 @@ class Fix(Stage):
 
         original_code = file_path.read_text()
 
-        prompt = f"""
-                The following Python code has a bug. Please fix the Bug.
+        additional_context = ctx.get("previous_attempt_feedback", "")
 
-                {original_code}
-                """
+        if additional_context:
+            prompt = f"""
+                        The following Python code has a bug. I tried to fix it before and attached some context. Please fix the Bug.
+
+                        {original_code}
+
+                        {additional_context}
+                        """
+        else:
+            prompt = f"""
+                        The following Python code has a bug. Please fix the Bug.
+
+                        {original_code}
+                        """
 
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         response = client.models.generate_content(

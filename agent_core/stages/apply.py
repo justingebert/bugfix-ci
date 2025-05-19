@@ -1,6 +1,7 @@
 import subprocess
 from agent_core.stage import Stage
 import os
+import logging
 
 class Apply(Stage):
     name = "apply"

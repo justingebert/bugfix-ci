@@ -25,10 +25,24 @@ def get_issues(limit=None) -> list[Issue.Issue]:
     if not label:
         sys.exit("❌  LABEL env var is required ❌")
 
-    if limit:
-        return [issue for issue in repo.get_issues(state="open", labels=[label])][:limit]
-    else:
-        return [issue for issue in repo.get_issues(state="open", labels=[label])]
+    exclude_label = os.getenv("FAILURE_LABEL")
+
+    issues = []
+    for issue in repo.get_issues(state="open", labels=[label]):
+        # Skip issues that have any of the excluded labels
+        should_exclude = False
+        for label in issue.labels:
+            if exclude_label and label.name == exclude_label:
+                should_exclude = True
+                break
+
+        if not should_exclude:
+            issues.append(issue)
+
+        if limit and len(issues) >= limit:
+            break
+
+    return issues
 
 def report_failure(issue_number, message):
     repo = get_repo()

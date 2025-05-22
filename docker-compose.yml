@@ -2,12 +2,12 @@ services:
     agent:
         image: bugfix-ci:dev
         build:
-            context: ..
-            dockerfile: docker/Dockerfile
+            context: ./
+            dockerfile: Dockerfile
         volumes:
-            - ../:/workspace
+            - ./:/workspace
         env_file:
-            -   ../.env
+            -   ./.env
         environment:
             CONFIG_FILE: /workspace/workspace/config/bugfix.yml
             ENV: dev-deployed

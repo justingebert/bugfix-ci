@@ -12,16 +12,16 @@ def get_local_workspace():
 
 def print_dir_tree(paths=None):
     """Prints the directory tree for the given paths, or defaults."""
-    print("\n== File tree ==")
+    logging.info("\n== File tree ==")
     if paths is None:
         paths = [pathlib.Path("/workspace")]
 
     for p in paths:
-        print(f"\n*** {p} ***")
+        logging.info(f"\n*** {p} ***")
         if subprocess.call(["sh", "-c", "command -v tree >/dev/null"]) == 0:
             subprocess.run(["tree", "-L", "2", str(p)], check=False)
         else:
-            print(f"[warn] 'tree' command not found. Cannot print directory tree for {p}.")
+            logging.info(f"[warn] 'tree' command not found. Cannot print directory tree for {p}.")
 
 
 def find_file(name: str, exts: Iterable[str] = (".py",), root: Optional[Path] = None) -> Optional[Path]:
@@ -54,7 +54,7 @@ def reset_to_main():
         os.chdir('/workspace')
         logging.info("Resetting to main branch")
 
-        subprocess.run(["git", "reset", "--hard"], check=True, capture_output=True)
+        #subprocess.run(["git", "reset", "--hard"], check=True, capture_output=True)
 
         subprocess.run(["git", "checkout", "main"], check=True, capture_output=True)
 

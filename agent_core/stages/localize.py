@@ -1,4 +1,5 @@
 import pathlib, re
+from pathlib import Path
 import logging
 from agent_core.cli import local_work_space
 from agent_core.stage import Stage
@@ -15,7 +16,7 @@ class Localize(Stage):
         logging.info(f"Current directory structure:")
         paths_to_print = None
         if workdir:
-            workdir_path = (pathlib.Path(get_local_workspace()) / workdir).resolve()
+            workdir_path = Path("/workspace") / workdir
             paths_to_print = [workdir_path]
             logging.info(f"Looking in workdir: {workdir_path}")
 
@@ -26,7 +27,10 @@ class Localize(Stage):
             raise RuntimeError(f"[{self.name}] cannot parse filename from title")
 
         base_name = match.group(1)
-        src_path = find_file(base_name, exts=(".py",), root=(pathlib.Path(local_work_space) / workdir).resolve())
+        search_path = Path("/workspace") / workdir
+        logging.info(f"Searching for {base_name} in {search_path}")
+
+        src_path = find_file(base_name, exts=(".py",), root=search_path)
         if not src_path:
             raise RuntimeError(f"[{self.name}] {base_name}.py not found in repo")
 

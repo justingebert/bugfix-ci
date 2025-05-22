@@ -6,6 +6,8 @@ import logging
 from agent_core.cli import local_work_space
 from agent_core.stage import Stage
 
+from agent_core.tools.repo_tools import print_dir_tree, get_local_workspace
+
 class Test(Stage):
     name = "test"
 
@@ -34,11 +36,12 @@ class Test(Stage):
             # For QuixBugs: run the specific test for this file
             test_file = f"test_{file_name}.py"
             test_dir = ctx.get("cfg", {}).get("workdir", ".").replace("python_programs", "python_testcases")
-            test_path = local_work_space / pathlib.Path(test_dir) / test_file
+            test_path = pathlib.Path("/workspace") / test_dir / test_file
 
             test_detail = {"file": str(file_path)}
 
-            # If the specific test file exists, run it
+            logging.info(f"[{self.name}] trying {test_path}...")
+
             if test_path.exists():
                 logging.info(f"[{self.name}] Running specific test: {test_path}")
                 try:

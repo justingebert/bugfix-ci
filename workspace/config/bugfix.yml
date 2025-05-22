@@ -1,4 +1,5 @@
 labels: ["bug_v01"]
+failure_label: "bug-fix-failed"
 workdir: "workspace/datasets/quixbugs/python_programs"
 test_cmd: "pytest"
 branchprefix: "fix"

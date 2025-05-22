@@ -2,7 +2,7 @@ import pathlib, re
 import logging
 from agent_core.cli import local_work_space
 from agent_core.stage import Stage
-from agent_core.tools.repo_tools import find_file, print_dir_tree
+from agent_core.tools.repo_tools import find_file, print_dir_tree, get_local_workspace
 
 TITLE_RE = re.compile(r"Problem in (\S+)")
 
@@ -11,14 +11,15 @@ class Localize(Stage):
     def run(self, ctx):
 
         workdir = ctx.get("cfg").get("workdir")
-        # paths_to_print = None
-        # if workdir:
-        #     workdir_path = (pathlib.Path(local_work_space) / workdir).resolve()
-        #     paths_to_print = [workdir_path]
-        # else:
-        #     print("No custom workdir specified. Printing default trees for /workspace.")
-        #
-        # print_dir_tree(paths_to_print)
+
+        logging.info(f"Current directory structure:")
+        paths_to_print = None
+        if workdir:
+            workdir_path = (pathlib.Path(get_local_workspace()) / workdir).resolve()
+            paths_to_print = [workdir_path]
+            logging.info(f"Looking in workdir: {workdir_path}")
+
+        print_dir_tree(paths_to_print)
 
         match = TITLE_RE.search(ctx["bug"].title)
         if not match:

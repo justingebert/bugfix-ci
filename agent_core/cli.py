@@ -2,22 +2,24 @@ import json, logging, os, sys, time
 from datetime import datetime
 from pathlib import Path
 
-from agent_core.tools.issue_helper import get_bug, get_issues
+from agent_core.tools.issue_helper import get_bug, get_issues, report_failure
 from agent_core.util import load_cfg, resolve_stage, setup_logging, generate_feedback
+from agent_core.tools.repo_tools import reset_to_main
 
 local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else ""
 
+#TODO rollback after issue is attempted so next one starts at main head
 
 def main():
     script_start_time = time.monotonic()
 
     cfg = load_cfg(local_work_space)
-    issues = get_issues(limit=1)
+    issues = get_issues(limit=2)
 
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
-    apply_stages = ["apply"]  # "report"]
+    apply_stages = ["apply", "report"]
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
@@ -30,7 +32,7 @@ def main():
     for issue in issues:
         issue_start_time = time.monotonic()
         log_dir, log_file = setup_logging(issue.number)
-        metrics_file = log_file.with_suffix('.json')
+        metrics_file = log_dir / f"issue_{issue.number}_metrics.json"
 
         logging.info(f"=== Starting bug fix for issue #{issue.number}: {issue.title} ===")
 
@@ -127,6 +129,10 @@ def main():
                 success, ctx = stage_cls().execute(ctx)
                 if not success:
                     logging.warning(f"!! Post-processing stage {name} failed")
+        else:
+            report_failure(issue.number, "Repair failed after max attempts")
+
+        reset_to_main()
 
         issue_end_time = time.monotonic()
         issue_duration = round(issue_end_time - issue_start_time, 4)
@@ -154,7 +160,7 @@ def main():
     script_end_time = time.monotonic()
     total_duration = script_end_time - script_start_time
     pipeline_metrics["total_execution_time"] = round(total_duration, 4)
-    pipeline_file = Path(log_dir) / f"pipeline_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    pipeline_file = Path(log_dir) / "pipeline_results.json"
     with open(pipeline_file, 'w') as f:
         json.dump(pipeline_metrics, f, indent=2)
 

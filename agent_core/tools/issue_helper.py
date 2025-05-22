@@ -29,3 +29,9 @@ def get_issues(limit=None) -> list[Issue.Issue]:
         return [issue for issue in repo.get_issues(state="open", labels=[label])][:limit]
     else:
         return [issue for issue in repo.get_issues(state="open", labels=[label])]
+
+def report_failure(issue_number, message):
+    repo = get_repo()
+    issue = repo.get_issue(int(issue_number))
+    issue.create_comment(f"❌  Fix failed: {message}")
+    issue.add_to_labels("bug-fix-failed")

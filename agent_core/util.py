@@ -1,9 +1,11 @@
 import importlib, logging, pathlib, yaml
 from datetime import datetime
 
+
 def _read_yaml(path: pathlib.Path) -> dict:
     with open(path) as fh:
         return yaml.safe_load(fh) or {}
+
 
 def load_cfg(local_work_space="workspace") -> dict:
     cfg = {"stages": []}
@@ -20,7 +22,7 @@ def load_cfg(local_work_space="workspace") -> dict:
         cfg |= _read_yaml(env_path)
     else:
         logging.info(f"[warn] config file {env_path} not found; "
-              f"using {default_path.name if default_path.exists() else 'built-ins'}.")
+                     f"using {default_path.name if default_path.exists() else 'built-ins'}.")
     return cfg
 
 
@@ -42,12 +44,14 @@ def resolve_stage(name: str):
 def setup_logging(issue_number):
     """Configure logging to write to both console and file"""
     # Create logs directory
-    log_dir = pathlib.Path("/workspace/logs")
-    logging.info(f"Creating log directory at: {log_dir.absolute()}")
-    log_dir.mkdir(exist_ok=True, parents=True)
+    base_log_dir = pathlib.Path("/workspace/logs")
+    base_log_dir.mkdir(exist_ok=True, parents=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = log_dir / f"issue_{issue_number}_{timestamp}.log"
+    run_timestamp = datetime.now().strftime("%m_%d_%H_%M")
+    run_dir = base_log_dir / f"run_at_{run_timestamp}"
+    run_dir.mkdir(exist_ok=True)
+
+    log_file = run_dir / f"issue_{issue_number}.log"
 
     # Reset handlers (in case this function is called multiple times)
     root_logger = logging.getLogger()
@@ -67,9 +71,11 @@ def setup_logging(issue_number):
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
 
-    return log_dir, log_file
+    return run_dir, log_file
+
 
 import difflib
+
 
 def generate_feedback(ctx):
     """Generate feedback from test results and code changes for the next fix attempt"""

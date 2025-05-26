@@ -3,7 +3,8 @@ from datetime import datetime
 from pathlib import Path
 
 from agent_core.tools.issue_helper import get_bug, get_issues, report_failure
-from agent_core.util import load_cfg, resolve_stage, setup_logging, generate_feedback
+from agent_core.util.util import load_cfg, resolve_stage, generate_feedback
+from agent_core.util.logger import setup_logging, create_log_dir
 from agent_core.tools.repo_tools import reset_to_main
 
 local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else ""
@@ -12,14 +13,16 @@ local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else ""
 
 def main():
     script_start_time = time.monotonic()
+    log_dir = create_log_dir()
 
     cfg = load_cfg(local_work_space)
-    issues = get_issues(limit=2)
 
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
     apply_stages = ["apply", "report"]
+
+    issues = get_issues(limit=2)
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
@@ -31,7 +34,7 @@ def main():
 
     for issue in issues:
         issue_start_time = time.monotonic()
-        log_dir, log_file = setup_logging(issue.number)
+        log_file = setup_logging(issue.number, log_dir)
         metrics_file = log_dir / f"issue_{issue.number}_metrics.json"
 
         logging.info(f"=== Starting bug fix for issue #{issue.number}: {issue.title} ===")

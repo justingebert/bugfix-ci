@@ -1,13 +1,10 @@
 import json, logging, os, sys, time
-from datetime import datetime
 from pathlib import Path
 
-from agent_core.tools.issue_helper import get_bug, get_issues, report_failure
+from agent_core.tools.github_tools import get_issues, report_failure
 from agent_core.util.util import load_cfg, resolve_stage, generate_feedback
 from agent_core.util.logger import setup_logging, create_log_dir
-from agent_core.tools.repo_tools import reset_to_main
-
-local_work_space = "workspace" if os.getenv("ENV") == "dev-deployed" else ""
+from agent_core.tools.local_repo_tools import reset_to_main
 
 #TODO rollback after issue is attempted so next one starts at main head
 
@@ -15,7 +12,7 @@ def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
 
-    cfg = load_cfg(local_work_space)
+    cfg = load_cfg("/workspace")
 
     localize_stages = ["localize"]
     fix_stages = ["fix"]
@@ -41,8 +38,8 @@ def main():
 
         ctx = {
             "bug": issue,
-            "workspace": "/workspace",
             "cfg": cfg,
+            "attempt_history": [],
             "metrics": {
                 "github_run_id": os.getenv("GITHUB_RUN_ID"),
                 "issue_number": issue.number,
@@ -52,17 +49,12 @@ def main():
                 "repair_successful": False,
                 "attempts": 1
             },
-            "attempt_history": []
         }
 
-        localize_success = True
+        localize_success = False
         for name in localize_stages:
             stage_cls = resolve_stage(name)
-            success, ctx = stage_cls().execute(ctx)
-            if not success:
-                localize_success = False
-                break
-
+            localize_success, ctx = stage_cls().execute(ctx)
         if not localize_success:
             logging.error(f"!! Localization failed for issue #{issue.number}. Skipping.")
             continue
@@ -82,31 +74,24 @@ def main():
             if attempt > 1:
                 feedback = generate_feedback(ctx)
                 ctx["previous_attempt_feedback"] = feedback
-                logging.info(f"Adding feedback from previous attempt")
-                logging.info(f"Feedback: {feedback[:200]}...")
+                logging.info(f"Added feedback from previous attempt")
 
-            fix_stage_success = True
+            fix_stage_success = False
             for name in fix_stages:
                 stage_cls = resolve_stage(name)
-                success, ctx = stage_cls().execute(ctx)
-                if not success:
-                    fix_stage_success = False
-                    break
+                fix_stage_success, ctx = stage_cls().execute(ctx)
 
             if not fix_stage_success:
                 logging.error(f"!! Fix stage failed on attempt {attempt}")
                 continue
 
-            validation_success = True
+            validation_success = False
             for name in validate_stages:
                 stage_cls = resolve_stage(name)
-                success, ctx = stage_cls().execute(ctx)
-                if not success:
-                    validation_success = False
-                    break
+                validation_success, ctx = stage_cls().execute(ctx)
 
-            # Check if fix was successful
-            fix_success = ctx.get("test_results", {}).get("status") == "success"
+            tests_passed = ctx.get("test_results", {}).get("status") == "success"
+            fix_success = tests_passed and localize_success and fix_stage_success and validation_success
 
             attempt_result = {
                 "attempt": attempt,

@@ -1,12 +1,14 @@
 import importlib, logging, pathlib, yaml
 
+def get_local_workspace():
+    return "workspace"
 
 def _read_yaml(path: pathlib.Path) -> dict:
     with open(path) as fh:
         return yaml.safe_load(fh) or {}
 
 
-def load_cfg(local_work_space="workspace") -> dict:
+def load_cfg(work_space=None) -> dict:
     cfg = {"stages": []}
 
     default_path = pathlib.Path("agent_core/default-config.yml")
@@ -16,7 +18,7 @@ def load_cfg(local_work_space="workspace") -> dict:
     else:
         logging.info(f"[warn] default config file {default_path} not found; using built-ins.")
 
-    env_path = pathlib.Path(local_work_space) / "workspace" / "config" / "bugfix.yml"
+    env_path = pathlib.Path(work_space) / "workspace" / "config" / "bugfix.yml"
     if env_path.exists():
         cfg |= _read_yaml(env_path)
     else:

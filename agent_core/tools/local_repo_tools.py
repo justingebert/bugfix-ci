@@ -1,20 +1,15 @@
-import pathlib
 from pathlib import Path
 import subprocess
 from typing import Optional, Iterable
 import logging
 import os
 
-#TODO clean up
-def get_local_workspace():
-    """Get the local workspace path without circular imports"""
-    return "workspace" if os.getenv("ENV") == "dev-deployed" else ""
+from agent_core.util.util import get_local_workspace
 
-def print_dir_tree(paths=None):
+
+def print_dir_tree(paths):
     """Prints the directory tree for the given paths, or defaults."""
     logging.info("\n== File tree ==")
-    if paths is None:
-        paths = [pathlib.Path("/workspace")]
 
     for p in paths:
         logging.info(f"\n*** {p} ***")
@@ -26,8 +21,7 @@ def print_dir_tree(paths=None):
 
 def find_file(name: str, exts: Iterable[str] = (".py",), root: Optional[Path] = None) -> Optional[Path]:
     if root is None:
-        local_work_space = get_local_workspace()
-        root = Path(local_work_space)
+        root = Path(get_local_workspace())
 
     target_names = {name} | {f"{name}{ext}" for ext in exts}
     for path in root.rglob("*"):
@@ -48,11 +42,18 @@ def run_command(command: list[str], file_path: Path) -> tuple[bool, str, str]:
         return False, "", f"Error running command {' '.join(command)}: {e}"
 
 
-def reset_to_main():
+def reset_to_main(files: Optional[Iterable[str]] = None) -> bool:
     """Reset git to main branch and clean working directory"""
     try:
-        os.chdir('/workspace')
+        os.chdir(get_local_workspace())
         logging.info("Resetting to main branch")
+        #reset just the edited files
+        for file in files or []:
+            if Path(file).exists():
+                subprocess.run(["git", "checkout", "--", file], check=True, capture_output=True)
+                logging.info(f"Reset {file} to main branch")
+            else:
+                logging.warning(f"File {file} does not exist, skipping reset")
 
         #subprocess.run(["git", "reset", "--hard"], check=True, capture_output=True)
 

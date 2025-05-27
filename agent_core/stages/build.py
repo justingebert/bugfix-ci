@@ -1,6 +1,6 @@
 import pathlib, datetime
 from agent_core.stage import Stage
-from agent_core.tools.repo_tools import run_command
+from agent_core.tools.local_repo_tools import run_command
 import logging
 
 

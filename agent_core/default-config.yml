@@ -1,0 +1,5 @@
+to_fix_label: "bug_v01"
+submitted_fix_label: "bug_v01_submitted_fix"
+failed_fix_label: "bug_v01_fix_failed"
+workdir: ""
+branch_prefix: "bugfix_v01_"

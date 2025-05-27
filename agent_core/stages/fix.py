@@ -7,7 +7,6 @@ from google.genai import types
 
 from agent_core.tools.file_tools import clean_code_from_llm_response
 
-
 class Fix(Stage):
     name = "fix"
     def run(self, ctx):

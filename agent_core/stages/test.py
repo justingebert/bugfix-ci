@@ -1,12 +1,9 @@
-import os
-import pathlib, datetime
+import pathlib
 import subprocess
 import logging
 
-from agent_core.cli import local_work_space
 from agent_core.stage import Stage
-
-from agent_core.tools.repo_tools import print_dir_tree, get_local_workspace
+from agent_core.util.util import get_local_workspace
 
 class Test(Stage):
     name = "test"
@@ -36,7 +33,7 @@ class Test(Stage):
             # For QuixBugs: run the specific test for this file
             test_file = f"test_{file_name}.py"
             test_dir = ctx.get("cfg", {}).get("workdir", ".").replace("python_programs", "python_testcases")
-            test_path = pathlib.Path("/workspace") / test_dir / test_file
+            test_path = get_local_workspace() / test_dir / test_file
 
             test_detail = {"file": str(file_path)}
 

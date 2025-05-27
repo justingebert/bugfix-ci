@@ -1,9 +1,8 @@
 import pathlib, re
 from pathlib import Path
 import logging
-from agent_core.cli import local_work_space
 from agent_core.stage import Stage
-from agent_core.tools.repo_tools import find_file, print_dir_tree, get_local_workspace
+from agent_core.tools.local_repo_tools import find_file, print_dir_tree, get_local_workspace
 
 TITLE_RE = re.compile(r"Problem in (\S+)")
 
@@ -16,7 +15,7 @@ class Localize(Stage):
         logging.info(f"Current directory structure:")
         paths_to_print = None
         if workdir:
-            workdir_path = Path("/workspace") / workdir
+            workdir_path = get_local_workspace() / workdir
             paths_to_print = [workdir_path]
             logging.info(f"Looking in workdir: {workdir_path}")
 
@@ -27,7 +26,7 @@ class Localize(Stage):
             raise RuntimeError(f"[{self.name}] cannot parse filename from title")
 
         base_name = match.group(1)
-        search_path = Path("/workspace") / workdir
+        search_path = get_local_workspace() / workdir
         logging.info(f"Searching for {base_name} in {search_path}")
 
         src_path = find_file(base_name, exts=(".py",), root=search_path)

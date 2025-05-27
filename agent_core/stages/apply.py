@@ -3,6 +3,9 @@ from agent_core.stage import Stage
 import os
 import logging
 
+from agent_core.util.util import get_local_workspace
+
+
 class Apply(Stage):
     name = "apply"
 
@@ -22,7 +25,7 @@ class Apply(Stage):
             logging.info(f"[{self.name}] No fixed files found to commit.")
             return ctx
 
-        os.chdir('/workspace')
+        os.chdir(get_local_workspace())
         logging.info(f"[{self.name}] Working directory changed to: {os.getcwd()}")
 
         try:

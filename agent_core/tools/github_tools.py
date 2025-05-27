@@ -8,38 +8,26 @@ def get_repo() -> "github.Repository.Repository":
         sys.exit("❌  GITHUB_TOKEN and GITHUB_REPO env vars are required ❌")
     return Github(token).get_repo(repo)
 
-def get_bug() -> Issue.Issue:
+def get_issues(limit, cfg) -> list[Issue.Issue]:
     repo = get_repo()
-    manual = os.getenv("ISSUE_NUMBER")
-    label = os.getenv("LABEL")
-    if manual:
-        return repo.get_issue(int(manual))
-
-    for issue in repo.get_issues(state="open", labels=[label]):
-        return issue
-    sys.exit(f"❌  No open issues with label '{label}'")
-
-def get_issues(limit=None) -> list[Issue.Issue]:
-    repo = get_repo()
-    label = os.getenv("LABEL")
+    label = cfg.get("to_fix_label")
     if not label:
-        sys.exit("❌  LABEL env var is required ❌")
+        sys.exit("❌  LABEL required in CONFIG ❌")
 
-    exclude_label = os.getenv("FAILURE_LABEL")
-
+    exclude_labels = cfg.get("failed_fix_label", "")
     issues = []
     for issue in repo.get_issues(state="open", labels=[label]):
         # Skip issues that have any of the excluded labels
         should_exclude = False
         for label in issue.labels:
-            if exclude_label and label.name == exclude_label:
+            if exclude_labels and label.name in exclude_labels.split(","):
                 should_exclude = True
                 break
 
         if not should_exclude:
             issues.append(issue)
 
-        if limit and len(issues) >= limit:
+        if len(issues) >= limit:
             break
 
     return issues

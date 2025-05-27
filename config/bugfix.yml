@@ -1,7 +1,7 @@
 to_fix_label: "bug_v01"
 submitted_fix_label: "bug_v01_submitted_fix"
 failed_fix_label: "bug-fix-failed"
-workdir: "workspace/datasets/quixbugs/python_programs"
+workdir: "quixbugs/python_programs"
 test_cmd: "pytest"
 branch_prefix: "bugfix_v01_"
 # max_attempts: 3

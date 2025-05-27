@@ -1,5 +1,5 @@
 from agent_core.stage import Stage
-from agent_core.tools.github_tools import get_repo
+from agent_core.tools.github_tools import get_repo, add_issue_label
 import logging
 
 class Report(Stage):
@@ -73,6 +73,10 @@ class Report(Stage):
                 )
                 action = "created"
                 logging.info(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
+
+            #add lebel to issue
+            fix_submitted_label = ctx.get("cfg", {}).get("fix_submitted_label", "fix-submitted")
+            add_issue_label(bug.number, fix_submitted_label)
 
             ctx["report_results"] = {
                 "status": "success",

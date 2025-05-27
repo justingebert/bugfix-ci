@@ -23,10 +23,32 @@ def find_file(name: str, exts: Iterable[str] = (".py",), root: Optional[Path] = 
     if root is None:
         root = Path(get_local_workspace())
 
+    logging.info(f"Finding file: name={name}, exts={exts}")
+    logging.info(f"Search root: {root} (absolute: {root.absolute()})")
+    logging.info(f"Root exists: {root.exists()}")
+
+    if root.exists():
+        logging.info("Files in search directory:")
+        for i, item in enumerate(root.glob('*')):
+            logging.info(f"  - {item.name} ({'dir' if item.is_dir() else 'file'})")
+            if i > 20:  # Limit output
+                logging.info("  ... (more files)")
+                break
+
+
     target_names = {name} | {f"{name}{ext}" for ext in exts}
+    logging.info(f"Looking for any of: {target_names}")
+
+    files_found = []
     for path in root.rglob("*"):
-        if path.is_file() and path.name in target_names:
-            return path.resolve()
+        if path.is_file():
+            files_found.append(str(path))
+            if path.name in target_names:
+                logging.info(f"Found match: {path}")
+                return path.resolve()
+
+    logging.info(f"Search completed. Files found: {len(files_found)}")
+    logging.info(f"First 10 files searched: {files_found[:10]}")
     return None
 
 
@@ -58,7 +80,6 @@ def reset_to_main(files: Optional[Iterable[str]] = None) -> bool:
         #subprocess.run(["git", "reset", "--hard"], check=True, capture_output=True)
 
         subprocess.run(["git", "checkout", "main"], check=True, capture_output=True)
-
         logging.info("Successfully reset to main branch")
         return True
     except Exception as e:

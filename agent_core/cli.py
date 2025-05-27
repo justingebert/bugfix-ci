@@ -2,7 +2,7 @@ import json, logging, os, sys, time
 from pathlib import Path
 
 from agent_core.tools.github_tools import get_issues, report_failure
-from agent_core.util.util import load_cfg, resolve_stage, generate_feedback
+from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace
 from agent_core.util.logger import setup_logging, create_log_dir
 from agent_core.tools.local_repo_tools import reset_to_main
 
@@ -11,15 +11,16 @@ from agent_core.tools.local_repo_tools import reset_to_main
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
+    log_file = setup_logging("bugfix_pipeline", log_dir)
 
-    cfg = load_cfg("/workspace")
+    cfg = load_cfg(get_local_workspace())
 
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
     apply_stages = ["apply", "report"]
 
-    issues = get_issues(limit=2)
+    issues = get_issues(limit=2, cfg=cfg)
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),

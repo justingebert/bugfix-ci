@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 import subprocess
 import logging
 
@@ -25,7 +25,7 @@ class Test(Stage):
         test_results = {"status": "success", "details": []}
 
         for file_path_str in fixed_files:
-            file_path = pathlib.Path(file_path_str)
+            file_path = Path(file_path_str)
             file_name = file_path.stem
 
             logging.info(f"[{self.name}] Testing {file_name}...")
@@ -33,7 +33,7 @@ class Test(Stage):
             # For QuixBugs: run the specific test for this file
             test_file = f"test_{file_name}.py"
             test_dir = ctx.get("cfg", {}).get("workdir", ".").replace("python_programs", "python_testcases")
-            test_path = get_local_workspace() / test_dir / test_file
+            test_path = Path(get_local_workspace()) / test_dir / test_file
 
             test_detail = {"file": str(file_path)}
 

@@ -1,7 +1,7 @@
 import importlib, logging, pathlib, yaml
 
 def get_local_workspace():
-    return "workspace"
+    return pathlib.Path("/workspace")
 
 def _read_yaml(path: pathlib.Path) -> dict:
     with open(path) as fh:
@@ -18,7 +18,7 @@ def load_cfg(work_space=None) -> dict:
     else:
         logging.info(f"[warn] default config file {default_path} not found; using built-ins.")
 
-    env_path = pathlib.Path(work_space) / "workspace" / "config" / "bugfix.yml"
+    env_path = pathlib.Path(work_space) / "config" / "bugfix.yml"
     if env_path.exists():
         cfg |= _read_yaml(env_path)
     else:

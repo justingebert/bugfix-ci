@@ -6,7 +6,6 @@ import os
 
 from agent_core.util.util import get_local_workspace
 
-
 def print_dir_tree(paths):
     """Prints the directory tree for the given paths, or defaults."""
     logging.info("\n== File tree ==")

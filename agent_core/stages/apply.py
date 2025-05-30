@@ -17,7 +17,7 @@ class Apply(Stage):
             logging.info(f"[{self.name}] No bug information found. Skipping apply.")
             return ctx
 
-        issue_number = bug.number
+        issue_number = bug["number"]
         branch_name = f"fix-{issue_number}"
 
         fixed_files = ctx.get("fixed_files", [])
@@ -48,7 +48,7 @@ class Apply(Stage):
             for file_path in fixed_files:
                 subprocess.run(["git", "add", file_path], check=True, capture_output=True)
 
-            commit_msg = f"Fix issue #{issue_number}: {bug.title}"
+            commit_msg = f"Fix issue #{issue_number}: {bug["title"]}"
             result = subprocess.run(["git", "commit", "-m", commit_msg], capture_output=True, text=True)
 
             if result.returncode != 0:

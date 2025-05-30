@@ -1,5 +1,4 @@
-import importlib, logging, pathlib, yaml
-
+import importlib, logging, pathlib, yaml, json, os
 def get_local_workspace():
     return pathlib.Path("/workspace")
 
@@ -41,6 +40,15 @@ def resolve_stage(name: str):
         raise RuntimeError(f"Stage '{name}': Class '{class_name}' missing in {module_path}") from e
     return stage_cls
 
+
+def get_issues_from_env():
+    issues_json = os.environ.get("FILTERED_ISSUES")
+    if not issues_json:
+        return []
+
+    issues_data = json.loads(issues_json)
+
+    return issues_data
 
 import difflib
 

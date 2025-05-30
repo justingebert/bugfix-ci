@@ -21,7 +21,7 @@ class Localize(Stage):
 
         print_dir_tree(paths_to_print)
 
-        match = TITLE_RE.search(ctx["bug"].title)
+        match = TITLE_RE.search(ctx["bug"]["title"])
         if not match:
             raise RuntimeError(f"[{self.name}] cannot parse filename from title")
 

@@ -2,12 +2,12 @@ import json, logging, os, sys, time
 from pathlib import Path
 
 from agent_core.tools.github_tools import get_issues, report_failure
-from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace
+from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace, get_issues_from_env
 from agent_core.util.logger import setup_logging, create_log_dir
 from agent_core.tools.local_repo_tools import reset_to_main
 
 #TODO rollback after issue is attempted so next one starts at main head
-
+#TODO check out issue branch before starting
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
@@ -18,9 +18,10 @@ def main():
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
-    apply_stages = ["apply", "report"]
+    #TODO report to issue aswell
+    apply_stages = ["apply"]
 
-    issues = get_issues(limit=2, cfg=cfg)
+    issues = get_issues_from_env()
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
@@ -32,10 +33,10 @@ def main():
 
     for issue in issues:
         issue_start_time = time.monotonic()
-        log_file = setup_logging(issue.number, log_dir)
-        metrics_file = log_dir / f"issue_{issue.number}_metrics.json"
+        log_file = setup_logging(issue["number"], log_dir)
+        metrics_file = log_dir / f"issue_{issue['number']}_metrics.json"
 
-        logging.info(f"=== Starting bug fix for issue #{issue.number}: {issue.title} ===")
+        logging.info(f"=== Starting bug fix for issue #{issue['number']}: {issue['title']} ===")
 
         ctx = {
             "bug": issue,
@@ -43,8 +44,8 @@ def main():
             "attempt_history": [],
             "metrics": {
                 "github_run_id": os.getenv("GITHUB_RUN_ID"),
-                "issue_number": issue.number,
-                "issue_title": issue.title,
+                "issue_number": issue["number"],
+                "issue_title": issue["title"],
                 "execution_times_stages": {},
                 "total_script_execution_time": 0.0,
                 "repair_successful": False,
@@ -52,12 +53,14 @@ def main():
             },
         }
 
+        #prepare workspace and git
+
         localize_success = False
         for name in localize_stages:
             stage_cls = resolve_stage(name)
             localize_success, ctx = stage_cls().execute(ctx)
         if not localize_success:
-            logging.error(f"!! Localization failed for issue #{issue.number}. Skipping.")
+            logging.error(f"!! Localization failed for issue #{issue["number"]}. Skipping.")
             continue
 
         attempt = 0
@@ -69,7 +72,7 @@ def main():
             ctx["metrics"]["current_attempt"] = attempt
             ctx["metrics"]["total_attempts"] = attempt
 
-            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue.number} ===")
+            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue["number"]} ===")
 
             # Add history/context from previous attempts
             if attempt > 1:
@@ -119,7 +122,7 @@ def main():
                 if not success:
                     logging.warning(f"!! Post-processing stage {name} failed")
         else:
-            report_failure(issue.number, "Repair failed after max attempts")
+            report_failure(issue["number"], "Repair failed after max attempts")
 
         reset_to_main()
 
@@ -128,16 +131,16 @@ def main():
         ctx["metrics"]["script_execution_time_for_issue"] = issue_duration
 
         pipeline_metrics["issues_processed"].append({
-            "issue_number": issue.number,
-            "issue_title": issue.title,
+            "issue_number": issue["number"],
+            "issue_title": issue["title"],
             "repair_successful": fix_success,
             "execution_time": issue_duration
         })
 
         with open(metrics_file, 'w') as f:
             json.dump({
-                "issue_number": issue.number,
-                "issue_title": issue.title,
+                "issue_number": issue["number"],
+                "issue_title": issue["title"],
                 "metrics": ctx["metrics"],
                 "fixed_files": ctx.get("fixed_files", []),
                 "context": {k: v for k, v in ctx.items() if k != "bug"},

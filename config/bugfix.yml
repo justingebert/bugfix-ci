@@ -5,5 +5,5 @@ workdir: "quixbugs/python_programs"
 test_cmd: "pytest"
 branch_prefix: "bugfix_v01_"
 max_issues: 5
-# max_attempts: 3
+max_attempts: 3
 # max_duration: 120

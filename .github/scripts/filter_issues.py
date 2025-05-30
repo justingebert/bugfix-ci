@@ -46,7 +46,6 @@ if event_name == "workflow_dispatch":
             "title": issue.title,
             "body": issue.body,
             "labels": [{"name": label.name} for label in issue.labels],
-            "url": issue.html_url
         })
         count += 1
         if count >= max_issues:

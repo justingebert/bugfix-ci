@@ -15,17 +15,13 @@ def main():
 
     cfg = load_cfg(get_local_workspace())
 
-    issuestest = get_issues_from_env()
-    print(issuestest)
-    sys.exit(0)
-
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
     #TODO report to issue aswell
-    apply_stages = ["apply", "report"]
+    apply_stages = ["apply"]
 
-    # issues = get_issues(limit=2, cfg=cfg)
+    issues = get_issues_from_env()
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
@@ -37,10 +33,10 @@ def main():
 
     for issue in issues:
         issue_start_time = time.monotonic()
-        log_file = setup_logging(issue.number, log_dir)
-        metrics_file = log_dir / f"issue_{issue.number}_metrics.json"
+        log_file = setup_logging(issue["number"], log_dir)
+        metrics_file = log_dir / f"issue_{issue['number']}_metrics.json"
 
-        logging.info(f"=== Starting bug fix for issue #{issue.number}: {issue.title} ===")
+        logging.info(f"=== Starting bug fix for issue #{issue['number']}: {issue['title']} ===")
 
         ctx = {
             "bug": issue,
@@ -48,8 +44,8 @@ def main():
             "attempt_history": [],
             "metrics": {
                 "github_run_id": os.getenv("GITHUB_RUN_ID"),
-                "issue_number": issue.number,
-                "issue_title": issue.title,
+                "issue_number": issue["number"],
+                "issue_title": issue["title"],
                 "execution_times_stages": {},
                 "total_script_execution_time": 0.0,
                 "repair_successful": False,
@@ -57,12 +53,14 @@ def main():
             },
         }
 
+        #prepare workspace and git
+
         localize_success = False
         for name in localize_stages:
             stage_cls = resolve_stage(name)
             localize_success, ctx = stage_cls().execute(ctx)
         if not localize_success:
-            logging.error(f"!! Localization failed for issue #{issue.number}. Skipping.")
+            logging.error(f"!! Localization failed for issue #{issue["number"]}. Skipping.")
             continue
 
         attempt = 0
@@ -74,7 +72,7 @@ def main():
             ctx["metrics"]["current_attempt"] = attempt
             ctx["metrics"]["total_attempts"] = attempt
 
-            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue.number} ===")
+            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue["number"]} ===")
 
             # Add history/context from previous attempts
             if attempt > 1:
@@ -124,7 +122,7 @@ def main():
                 if not success:
                     logging.warning(f"!! Post-processing stage {name} failed")
         else:
-            report_failure(issue.number, "Repair failed after max attempts")
+            report_failure(issue["number"], "Repair failed after max attempts")
 
         reset_to_main()
 
@@ -133,16 +131,16 @@ def main():
         ctx["metrics"]["script_execution_time_for_issue"] = issue_duration
 
         pipeline_metrics["issues_processed"].append({
-            "issue_number": issue.number,
-            "issue_title": issue.title,
+            "issue_number": issue["number"],
+            "issue_title": issue["title"],
             "repair_successful": fix_success,
             "execution_time": issue_duration
         })
 
         with open(metrics_file, 'w') as f:
             json.dump({
-                "issue_number": issue.number,
-                "issue_title": issue.title,
+                "issue_number": issue["number"],
+                "issue_title": issue["title"],
                 "metrics": ctx["metrics"],
                 "fixed_files": ctx.get("fixed_files", []),
                 "context": {k: v for k, v in ctx.items() if k != "bug"},

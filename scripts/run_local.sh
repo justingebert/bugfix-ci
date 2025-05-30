@@ -1,4 +1,6 @@
-docker compose \
-  --env-file .env \
-  -f docker/docker-compose.yml \
-  up --build
+#!/bin/bash
+
+source ../.env
+
+# Run the Python script to generate files
+python get_local_issues.py ../filtered_issues.json

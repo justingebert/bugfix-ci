@@ -2,12 +2,12 @@ import json, logging, os, sys, time
 from pathlib import Path
 
 from agent_core.tools.github_tools import get_issues, report_failure
-from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace
+from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace, get_issues_from_env
 from agent_core.util.logger import setup_logging, create_log_dir
 from agent_core.tools.local_repo_tools import reset_to_main
 
 #TODO rollback after issue is attempted so next one starts at main head
-
+#TODO check out issue branch before starting
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
@@ -15,12 +15,17 @@ def main():
 
     cfg = load_cfg(get_local_workspace())
 
+    issuestest = get_issues_from_env()
+    print(issuestest)
+    sys.exit(0)
+
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
+    #TODO report to issue aswell
     apply_stages = ["apply", "report"]
 
-    issues = get_issues(limit=2, cfg=cfg)
+    # issues = get_issues(limit=2, cfg=cfg)
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),

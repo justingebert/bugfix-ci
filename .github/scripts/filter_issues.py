@@ -100,5 +100,6 @@ elif event_name == "issue_comment" and event.get("action") == "created":
         })
 
 issues_json = json.dumps(issues_to_process)
+print(issues_json)
 with open(os.environ.get("GITHUB_OUTPUT", "/dev/null"), "a") as f:
     f.write(f"issues<<EOF\n{issues_json}\nEOF\n")

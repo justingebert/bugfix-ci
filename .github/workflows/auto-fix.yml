@@ -70,4 +70,4 @@ jobs:
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/workspace" \
             -e GITHUB_TOKEN -e GITHUB_RUN_ID -e FILTERED_ISSUES \
-            ghcr.io/justingebert/bugfix-agent:latest
+            ghcr.io/justingebert/bugfix-ci:latest

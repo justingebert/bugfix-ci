@@ -20,6 +20,7 @@ def load_cfg(work_space=None) -> dict:
     env_path = pathlib.Path(work_space) / "config" / "bugfix.yml"
     if env_path.exists():
         cfg |= _read_yaml(env_path)
+        logging.info(f"[info] loaded config from {env_path}")
     else:
         logging.info(f"[warn] config file {env_path} not found; "
                      f"using {default_path.name if default_path.exists() else 'built-ins'}.")

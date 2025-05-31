@@ -1,94 +1,97 @@
-import subprocess
-from agent_core.stage import Stage
-import os
 import logging
-
+from pathlib import Path
+import git
+from agent_core.stage import Stage
 from agent_core.util.util import get_local_workspace
-
 
 class Apply(Stage):
     name = "apply"
 
     def run(self, ctx):
-        logging.info(f"[{self.name}] Committing and pushing changes")
+        """Commit changes and generate diff."""
+        logging.info(f"[{self.name}] Applying changes and generating diff")
 
         bug = ctx.get("bug")
         if not bug:
-            logging.info(f"[{self.name}] No bug information found. Skipping apply.")
+            logging.error(f"[{self.name}] No bug information found")
             return ctx
 
         issue_number = bug["number"]
-        branch_name = f"fix-{issue_number}"
-
+        branch_name = ctx.get("branch")
         fixed_files = ctx.get("fixed_files", [])
-        if not fixed_files:
-            logging.info(f"[{self.name}] No fixed files found to commit.")
+
+        if not branch_name:
+            logging.error(f"[{self.name}] No branch name found in context")
+            ctx["apply_results"] = {"status": "failure", "message": "No branch name available"}
             return ctx
 
-        os.chdir(get_local_workspace())
-        logging.info(f"[{self.name}] Working directory changed to: {os.getcwd()}")
+        if not fixed_files:
+            logging.warning(f"[{self.name}] No fixed files found to commit")
+            ctx["apply_results"] = {"status": "failure", "message": "No fixed files to commit"}
+            return ctx
 
         try:
-            remote_url_result = subprocess.run(
-                ["git", "remote", "get-url", "origin"],
-                capture_output=True, text=True, check=True
-            )
-            remote_url = remote_url_result.stdout.strip()
-            logging.info(f"[{self.name}] Detected remote URL: {remote_url}")
+            repo_path = get_local_workspace()
+            repo = git.Repo(repo_path)
 
-            subprocess.run(["git", "status"], capture_output=True, text=True)
-            result = subprocess.run(["git", "branch", "--list", branch_name], capture_output=True, text=True)
-            if branch_name in result.stdout:
-                logging.info(f"[{self.name}] Branch {branch_name} already exists, checking it out")
-                subprocess.run(["git", "checkout", branch_name], check=True, capture_output=True)
-            else:
-                subprocess.run(["git", "checkout", "-b", branch_name], check=True, capture_output=True)
-                logging.info(f"[{self.name}] Created and checked out branch: {branch_name}")
+            current_branch = repo.active_branch.name
+            if current_branch != branch_name:
+                logging.info(f"[{self.name}] Switching from {current_branch} to {branch_name}")
+                repo.git.checkout(branch_name)
 
+            added_files = []
             for file_path in fixed_files:
-                subprocess.run(["git", "add", file_path], check=True, capture_output=True)
+                file = Path(repo_path) / file_path
+                rel_path = file.relative_to(repo_path)
 
-            commit_msg = f"Fix issue #{issue_number}: {bug["title"]}"
-            result = subprocess.run(["git", "commit", "-m", commit_msg], capture_output=True, text=True)
+                if file.exists():
+                    try:
+                        repo.git.add(str(rel_path))
+                        added_files.append(str(rel_path))
+                        logging.info(f"[{self.name}] Added file: {rel_path}")
+                    except git.GitCommandError as e:
+                        logging.error(f"[{self.name}] Failed to add file {rel_path}: {str(e)}")
+                else:
+                    logging.warning(f"[{self.name}] File does not exist: {rel_path}")
 
-            if result.returncode != 0:
-                logging.info(f"[{self.name}] Git commit failed: {result.stderr}")
-                ctx["apply_results"] = {"status": "failure", "message": result.stderr}
+            diff = repo.git.diff("--staged")
+
+            if not diff:
+                logging.warning(f"[{self.name}] No changes detected in staged files")
+                ctx["apply_results"] = {"status": "warning", "message": "No changes detected in staged files"}
                 return ctx
 
-            github_token = os.environ.get("GITHUB_TOKEN")
-            if not github_token:
-                logging.info(f"[{self.name}] Error: GITHUB_TOKEN environment variable not set")
-                ctx["apply_results"] = {"status": "failure", "message": "GitHub token not provided"}
-                return ctx
+            diff_file = Path(str(ctx.get("log_dir"))) / f"issue_{issue_number}_diff.patch"
+            with open(diff_file, 'w') as f:
+                f.write(diff)
 
-            # Modify remote URL to include token for authentication
-            original_remote = remote_url
-            if remote_url.startswith("https://"):
-                auth_remote = remote_url.replace("https://", f"https://x-access-token:{github_token}@")
-                subprocess.run(["git", "remote", "set-url", "origin", auth_remote], capture_output=True, check=True)
-                logging.info(f"[{self.name}] Configured authentication for push")
+            logging.info(f"[{self.name}] Generated diff saved to {diff_file}")
+            ctx["diff_file"] = str(diff_file)
 
-            push_result = subprocess.run(["git", "push", "origin", branch_name], capture_output=True, text=True)
+            staged_files = repo.git.diff("--name-only", "--staged").splitlines()
+            if staged_files:
+                commit_msg = f"Fix issue #{issue_number}: {bug['title']}"
+                repo.git.commit("-m", commit_msg)
+                logging.info(f"[{self.name}] Changes committed with message: {commit_msg}")
+                logging.info(f"[{self.name}] Committed files: {', '.join(staged_files)}")
+                ctx["apply_results"] = {
+                    "status": "success",
+                    "branch": branch_name,
+                    "commit_message": commit_msg,
+                    "diff_file": str(diff_file),
+                    "committed_files": staged_files
+                }
+            else:
+                logging.warning(f"[{self.name}] No changes to commit")
+                ctx["apply_results"] = {"status": "warning", "message": "No changes to commit"}
 
-            # Reset remote URL to original (for security)
-            if remote_url.startswith("https://"):
-                subprocess.run(["git", "remote", "set-url", "origin", original_remote], capture_output=True, check=True)
+            return ctx
 
-            if push_result.returncode != 0:
-                logging.info(f"[{self.name}] Git push failed: {push_result.stderr}")
-                ctx["apply_results"] = {"status": "failure", "message": push_result.stderr}
-                return ctx
-
-            logging.info(f"[{self.name}] Successfully pushed changes to branch {branch_name}")
-            ctx["apply_results"] = {
-                "status": "success",
-                "branch": branch_name,
-                "commit_message": commit_msg
-            }
-
-        except Exception as e:
-            logging.info(f"[{self.name}] Error applying changes: {str(e)}")
+        except git.GitCommandError as e:
+            logging.error(f"[{self.name}] Git error: {str(e)}")
             ctx["apply_results"] = {"status": "failure", "message": str(e)}
-
-        return ctx
+            return ctx
+        except Exception as e:
+            logging.error(f"[{self.name}] Error applying changes: {str(e)}")
+            ctx["apply_results"] = {"status": "failure", "message": str(e)}
+            return ctx

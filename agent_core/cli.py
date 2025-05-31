@@ -1,11 +1,13 @@
 import json, logging, os, sys, time
 from pathlib import Path
+from xml.etree.ElementPath import prepare_star
 
 from agent_core.tools.github_tools import get_issues, report_failure
 from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace, get_issues_from_env
 from agent_core.util.logger import setup_logging, create_log_dir
-from agent_core.tools.local_repo_tools import reset_to_main
+from agent_core.tools.local_repo_tools import reset_to_main, prepare_issue_branch
 
+#TODO refactor stage calling and handling
 #TODO rollback after issue is attempted so next one starts at main head
 #TODO check out issue branch before starting
 def main():
@@ -15,11 +17,12 @@ def main():
 
     cfg = load_cfg(get_local_workspace())
 
+    prepare_stages = ["prepare"]
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
-    #TODO report to issue aswell
     apply_stages = ["apply"]
+    report_stages = ["report"]
 
     issues = get_issues_from_env()
 
@@ -42,6 +45,7 @@ def main():
             "bug": issue,
             "cfg": cfg,
             "attempt_history": [],
+            "log_dir": str(log_dir),
             "metrics": {
                 "github_run_id": os.getenv("GITHUB_RUN_ID"),
                 "issue_number": issue["number"],
@@ -53,18 +57,25 @@ def main():
             },
         }
 
-        #prepare workspace and git
+        prepare_success = False
+        for name in prepare_stages:
+            stage_cls = resolve_stage(name)
+            prepare_success, ctx = stage_cls().execute(ctx)
+
+        if not prepare_success:
+            logging.error(f"!! Branch preparation failed for issue #{issue['number']}. Skipping.")
+            continue
 
         localize_success = False
         for name in localize_stages:
             stage_cls = resolve_stage(name)
             localize_success, ctx = stage_cls().execute(ctx)
         if not localize_success:
-            logging.error(f"!! Localization failed for issue #{issue["number"]}. Skipping.")
+            logging.error(f"!! Localization failed for issue #{issue['number']}. Skipping.")
             continue
 
         attempt = 0
-        max_attempts = 3
+        max_attempts = ctx["cfg"].get("max_attempts", 3)
         fix_success = False
 
         while attempt < max_attempts and not fix_success:
@@ -72,7 +83,7 @@ def main():
             ctx["metrics"]["current_attempt"] = attempt
             ctx["metrics"]["total_attempts"] = attempt
 
-            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue["number"]} ===")
+            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue['number']} ===")
 
             # Add history/context from previous attempts
             if attempt > 1:

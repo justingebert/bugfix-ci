@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 def get_filtered_issues():
     load_dotenv()
 
-    config_path = "../config/bugfix.yml"
+    config_path = "config/bugfix.yml"
     if os.path.exists(config_path):
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)

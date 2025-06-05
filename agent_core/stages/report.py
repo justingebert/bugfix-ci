@@ -27,14 +27,14 @@ class Report(Stage):
             }
             return ctx
 
-        issue_number = bug.number
+        issue_number = bug["number"]
         branch_name = apply_results.get("branch", f"{issue_number}-fix")
 
         try:
             repo = get_repo()
             repo_owner_login = repo.owner.login
 
-            pr_title = f"Fix for issue #{issue_number}: {bug.title}"
+            pr_title = f"Fix for issue #{issue_number}: {bug['title']}"
 
             pr_body = f"fixes #{issue_number}\n\n"
             pr_body += "## Changes\n"
@@ -74,9 +74,9 @@ class Report(Stage):
                 action = "created"
                 logging.info(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
 
-            #add lebel to issue
+            #add label to issue
             fix_submitted_label = ctx.get("cfg", {}).get("fix_submitted_label", "fix-submitted")
-            add_issue_label(bug.number, fix_submitted_label)
+            add_issue_label(bug["number"], fix_submitted_label)
 
             ctx["report_results"] = {
                 "status": "success",

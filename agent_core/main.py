@@ -20,7 +20,7 @@ def main():
     localize_stages = ["localize"]
     fix_stages = ["fix"]
     validate_stages = ["build", "test"]
-    apply_stages = ["apply"]
+    apply_stages = ["apply", "push"]
     report_stages = ["report"]
 
     issues = get_issues_from_env()
@@ -127,6 +127,12 @@ def main():
 
         if fix_success:
             for name in apply_stages:
+                stage_cls = resolve_stage(name)
+                success, ctx = stage_cls().execute(ctx)
+                if not success:
+                    logging.warning(f"!! Post-processing stage {name} failed")
+
+            for name in report_stages:
                 stage_cls = resolve_stage(name)
                 success, ctx = stage_cls().execute(ctx)
                 if not success:

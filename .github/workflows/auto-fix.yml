@@ -39,9 +39,17 @@ jobs:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: python .github/scripts/filter_issues.py
 
+  skipped:
+    needs: gate
+    if: ${{ needs.gate.outputs.filtered-issues == '' || needs.gate.outputs.filtered-issues == '[]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: No issues to process
+        run: echo "No issues to process, workflow skipped"
+
   bugfix:
     needs: gate
-    if: ${{ fromJson(needs.gate.outputs.filtered-issues) != '[]' }}
+    if: ${{ needs.gate.outputs.filtered-issues != '' && needs.gate.outputs.filtered-issues != '[]' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

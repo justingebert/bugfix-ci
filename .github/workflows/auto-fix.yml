@@ -39,11 +39,11 @@ jobs:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: python .github/scripts/filter_issues.py
 
-      - name: Cancel workflow if no issues to process
+      - name: Skip workflow
         if: ${{ fromJson(steps.filter-issues.outputs.issues) == '[]' }}
-        uses: andymckay/cancel-action@0.4
-        with:
-          cancel-workflow: true
+        run: |
+          echo "::notice::No issues to process. Workflow completed successfully but skipped further processing."
+          exit 0
 
   bugfix:
     needs: gate

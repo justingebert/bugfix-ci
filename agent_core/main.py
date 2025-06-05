@@ -9,6 +9,7 @@ from agent_core.tools.local_repo_tools import reset_to_main, prepare_issue_branc
 #TODO refactor stage calling and handling
 #TODO rollback after issue is attempted so next one starts at main head
 #TODO check out issue branch before starting
+#TODO allow for configuring main branch name
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()

@@ -1,10 +1,10 @@
 import json, logging, os, sys, time
 from pathlib import Path
 
-from agent_core.tools.github_tools import get_issues, report_failure
+from agent_core.tools.github_tools import  report_failure
 from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace, get_issues_from_env
 from agent_core.util.logger import setup_logging, create_log_dir
-from agent_core.tools.local_repo_tools import reset_to_main, prepare_issue_branch
+from agent_core.tools.local_repo_tools import reset_to_main
 
 #TODO refactor stage calling and handling
 #TODO rollback after issue is attempted so next one starts at main head
@@ -13,7 +13,7 @@ from agent_core.tools.local_repo_tools import reset_to_main, prepare_issue_branc
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
-    log_file = setup_logging("bugfix_pipeline", log_dir)
+    setup_logging("bugfix_pipeline", log_dir)
 
     cfg = load_cfg(get_local_workspace())
 
@@ -24,15 +24,16 @@ def main():
     apply_stages = ["apply", "push"]
     report_stages = ["report"]
 
-    issues = get_issues_from_env()
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
         "issues_processed": [],
         "successful_repairs": 0,
-        "total_issues": len(issues),
         "total_execution_time": 0.0
     }
+
+    issues = get_issues_from_env()
+    pipeline_metrics["issues_count"] = len(issues)
 
     for issue in issues:
         issue_start_time = time.monotonic()
@@ -175,8 +176,6 @@ def main():
 
     logging.info(f"Pipeline complete in {total_duration:.4f} seconds")
     logging.info(f"Processed {len(issues)} issues with {pipeline_metrics['successful_repairs']} successful repairs")
-    logging.info(f"Pipeline results saved to {pipeline_file}")
-
 
 if __name__ == "__main__":
     sys.exit(main())

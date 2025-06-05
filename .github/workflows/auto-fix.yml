@@ -87,4 +87,5 @@ jobs:
         with:
           name: agent-logs-and-metrics
           path: |
+            logs/
             workspace/logs/

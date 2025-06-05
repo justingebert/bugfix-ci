@@ -81,3 +81,10 @@ jobs:
             -v "$GITHUB_WORKSPACE:/workspace" \
             -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_REPO -e GOOGLE_API_KEY -e FILTERED_ISSUES \
             ghcr.io/justingebert/bugfix-ci:latest
+
+      - name: Upload logs and metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-logs-and-metrics
+          path: |
+            workspace/logs/

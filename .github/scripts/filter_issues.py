@@ -57,7 +57,7 @@ elif event_name == "issues":
     issue_number = issue_data.get("number")
     issue_labels = [label.get("name") for label in issue_data.get("labels", [])]
 
-    if submitted_fix_label in issue_labels:
+    if submitted_fix_label in issue_labels or failed_fix_label in issue_labels:
         sys.exit(0)
 
     # Process if issue has to_fix_label

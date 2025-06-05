@@ -39,12 +39,6 @@ jobs:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: python .github/scripts/filter_issues.py
 
-      - name: Skip workflow
-        if: ${{ fromJson(steps.filter-issues.outputs.issues) == '[]' }}
-        run: |
-          echo "::notice::No issues to process. Workflow completed successfully but skipped further processing."
-          exit 0
-
   bugfix:
     needs: gate
     if: ${{ fromJson(needs.gate.outputs.filtered-issues) != '[]' }}

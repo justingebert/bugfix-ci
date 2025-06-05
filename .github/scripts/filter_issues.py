@@ -98,6 +98,10 @@ elif event_name == "issue_comment" and event.get("action") == "created":
             "url": issue.html_url
         })
 
+if issues_to_process == []:
+    print("No issues to process")
+    sys.exit(0)
+
 issues_json = json.dumps(issues_to_process)
 print(issues_json)
 with open(os.environ.get("GITHUB_OUTPUT", "/dev/null"), "a") as f:

@@ -38,6 +38,28 @@ def prepare_issue_branch(issue_number, ctx):
         logging.error(f"Error preparing branch: {str(e)}")
         return False, None
 
+
+def get_repo_tree(root_path, ignore_dirs=None):
+    """
+    Generate a list of file paths in the repository.
+    """
+    if ignore_dirs is None:
+        ignore_dirs = ['.git', '__pycache__', 'venv', '.venv', 'node_modules']
+
+    file_paths = []
+
+    for root, dirs, files in os.walk(root_path):
+        # Skip ignored directories
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+
+        for file in files:
+            # Only include source code files
+            if file.endswith(('.py', '.java', '.js', '.ts', '.html', '.css')):
+                rel_path = os.path.relpath(os.path.join(root, file), root_path)
+                file_paths.append(rel_path)
+
+    return sorted(file_paths)
+
 def print_dir_tree(paths):
     """Prints the directory tree for the given paths, or defaults."""
     logging.info("\n== File tree ==")
@@ -48,7 +70,6 @@ def print_dir_tree(paths):
             subprocess.run(["tree", "-L", "2", str(p)], check=False)
         else:
             logging.info(f"[warn] 'tree' command not found. Cannot print directory tree for {p}.")
-
 
 def find_file(name: str, exts: Iterable[str] = (".py",), root: Optional[Path] = None) -> Optional[Path]:
     if root is None:

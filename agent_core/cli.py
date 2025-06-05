@@ -1,6 +1,5 @@
 import json, logging, os, sys, time
 from pathlib import Path
-from xml.etree.ElementPath import prepare_star
 
 from agent_core.tools.github_tools import get_issues, report_failure
 from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace, get_issues_from_env

@@ -70,10 +70,12 @@ jobs:
       - name: Run agent
         env:
           GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           FILTERED_ISSUES: ${{ needs.gate.outputs.filtered-issues }}
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/workspace" \
-            -e GITHUB_TOKEN -e GITHUB_RUN_ID -e FILTERED_ISSUES \
+            -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_REPO -e GOOGLE_API_KEY -e FILTERED_ISSUES \
             ghcr.io/justingebert/bugfix-ci:latest

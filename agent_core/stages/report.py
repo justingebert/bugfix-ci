@@ -75,7 +75,7 @@ class Report(Stage):
                 logging.info(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
 
             #add label to issue
-            fix_submitted_label = ctx.get("cfg", {}).get("fix_submitted_label", "fix-submitted")
+            fix_submitted_label = ctx.get("cfg", {}).get("submitted_fix_label")
             add_issue_label(bug["number"], fix_submitted_label)
 
             ctx["report_results"] = {

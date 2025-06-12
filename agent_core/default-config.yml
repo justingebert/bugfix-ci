@@ -3,5 +3,7 @@ submitted_fix_label: "bug_v01_submitted_fix"
 failed_fix_label: "bug_v01_fix_failed"
 workdir: ""
 branch_prefix: "bugfix_v01_"
+main_branch: "main"
 max_issues: 5
 max_attempts: 3
+model: "gemini-2.0-flash"

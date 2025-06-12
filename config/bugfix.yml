@@ -4,6 +4,8 @@ failed_fix_label: "bug-fix-failed"
 workdir: "quixbugs/python_programs"
 test_cmd: "pytest"
 branch_prefix: "bugfix_v01_"
-max_issues: 2
+main_branch: "main"
+max_issues: 1
 max_attempts: 3
+model: "gemini-2.0-flash"
 # max_duration: 120

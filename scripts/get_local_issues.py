@@ -59,9 +59,9 @@ def get_filtered_issues():
 
 
 if __name__ == "__main__":
-    output_file = sys.argv[1] if len(sys.argv) > 1 else "../filtered_issues.json"
+    output_file = sys.argv[1] if len(sys.argv) > 1 else "./filtered_issues.json"
 
-    env_file = "../.docker-env-issues"
+    env_file = "./.docker-env-issues"
 
     filtered_issues = get_filtered_issues()
 

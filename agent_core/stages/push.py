@@ -8,26 +8,26 @@ from agent_core.util.util import get_local_workspace
 class Push(Stage):
     name = "push"
 
-    def run(self, ctx):
+    def run(self, context):
         """Push committed changes to remote repository."""
         logging.info(f"[{self.name}] Pushing changes to remote")
 
-        apply_results = ctx.get("apply_results", {})
+        apply_results = context.get("apply_results", {})
         if apply_results.get("status") != "success":
             logging.warning(f"[{self.name}] Previous apply stage was not successful, skipping push")
-            return ctx
+            return context
 
-        branch_name = ctx.get("branch")
+        branch_name = context.get("branch")
         if not branch_name:
             logging.error(f"[{self.name}] No branch name found in context")
-            ctx["push_results"] = {"status": "failure", "message": "No branch name available"}
-            return ctx
+            context["push_results"] = {"status": "failure", "message": "No branch name available"}
+            return context
 
         github_token = os.environ.get("GITHUB_TOKEN")
         if not github_token:
             logging.warning(f"[{self.name}] GITHUB_TOKEN not set - changes committed but not pushed")
-            ctx["push_results"] = {"status": "warning", "message": "GitHub token not provided"}
-            return ctx
+            context["push_results"] = {"status": "warning", "message": "GitHub token not provided"}
+            return context
 
         try:
             repo_path = get_local_workspace()
@@ -47,10 +47,10 @@ class Push(Stage):
                 if push_info[0].flags & push_info[0].ERROR:
                     error_msg = f"Push failed: {push_info[0].summary}"
                     logging.error(f"[{self.name}] {error_msg}")
-                    ctx["push_results"] = {"status": "failure", "message": error_msg}
+                    context["push_results"] = {"status": "failure", "message": error_msg}
                 else:
                     logging.info(f"[{self.name}] Successfully pushed to {branch_name}")
-                    ctx["push_results"] = {
+                    context["push_results"] = {
                         "status": "success",
                         "branch": branch_name,
                         "remote": original_url
@@ -59,13 +59,13 @@ class Push(Stage):
                 if original_url.startswith("https://"):
                     origin.set_url(original_url)
 
-            return ctx
+            return context
 
         except git.GitCommandError as e:
             logging.error(f"[{self.name}] Git error: {str(e)}")
-            ctx["push_results"] = {"status": "failure", "message": str(e)}
-            return ctx
+            context["push_results"] = {"status": "failure", "message": str(e)}
+            return context
         except Exception as e:
             logging.error(f"[{self.name}] Error pushing changes: {str(e)}")
-            ctx["push_results"] = {"status": "failure", "message": str(e)}
-            return ctx
+            context["push_results"] = {"status": "failure", "message": str(e)}
+            return context

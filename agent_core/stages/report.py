@@ -5,27 +5,27 @@ import logging
 class Report(Stage):
     name = "report"
 
-    def run(self, ctx):
+    def run(self, context):
         logging.info(f"[{self.name}] Creating PR for the bug fix")
 
-        bug = ctx.get("bug")
+        bug = context.get("bug")
         if not bug:
             logging.info(f"[{self.name}] No bug information found. Skipping report.")
-            return ctx
+            return context
 
-        apply_results = ctx.get("apply_results", {})
+        apply_results = context.get("apply_results", {})
         if apply_results.get("status") != "success":
             logging.info(f"[{self.name}] Apply stage was not successful. Skipping PR creation.")
-            return ctx
+            return context
 
         branch_name = apply_results.get("branch")
         if not branch_name:
             logging.info(f"[{self.name}] Branch name not found in apply_results. Skipping report.")
-            ctx["report_results"] = {
+            context["report_results"] = {
                 "status": "failure",
                 "message": "Branch name not found after apply stage."
             }
-            return ctx
+            return context
 
         issue_number = bug["number"]
         branch_name = apply_results.get("branch", f"{issue_number}-fix")
@@ -39,13 +39,13 @@ class Report(Stage):
             pr_body = f"fixes #{issue_number}\n\n"
             pr_body += "## Changes\n"
 
-            fixed_files = ctx.get("fixed_files", [])
+            fixed_files = context.get("fixed_files", [])
             if fixed_files:
                 pr_body += "### Modified files:\n"
                 for file_path in fixed_files:
                     pr_body += f"- `{file_path}`\n"
 
-            test_results = ctx.get("test_results", {})
+            test_results = context.get("test_results", {})
             if test_results:
                 pr_body += "\n### Test Results\n"
                 pr_body += f"Status: {test_results.get('status', 'Unknown')}\n"
@@ -75,10 +75,10 @@ class Report(Stage):
                 logging.info(f"[{self.name}] Successfully created PR #{pr.number}: {pr_title}")
 
             #add label to issue
-            fix_submitted_label = ctx.get("cfg", {}).get("submitted_fix_label")
+            fix_submitted_label = context.get("cfg", {}).get("submitted_fix_label")
             add_issue_label(bug["number"], fix_submitted_label)
 
-            ctx["report_results"] = {
+            context["report_results"] = {
                 "status": "success",
                 "pr_number": pr.number,
                 "pr_url": pr.html_url,
@@ -87,6 +87,6 @@ class Report(Stage):
 
         except Exception as e:
             logging.info(f"[{self.name}] Error creating/updating PR: {str(e)}")
-            ctx["report_results"] = {"status": "failure", "message": str(e)}
+            context["report_results"] = {"status": "failure", "message": str(e)}
 
-        return ctx
+        return context

@@ -1,7 +1,7 @@
 import re
-def clean_code_from_llm_response(response_text, original_code):
+def clean_code_from_llm_response(response_text):
     """Clean markdown formatting from LLM response."""
-    # First try to extract code from markdown code blocks
+    # extract code from markdown code blocks
     code_block_pattern = r'```(?:python)?\s*(.*?)\s*```'
     code_blocks = re.findall(code_block_pattern, response_text, re.DOTALL)
 

@@ -1,29 +1,26 @@
 import json, logging, os, sys, time
 from pathlib import Path
 
+from agent_core.stages.apply import Apply
+from agent_core.stages.build import Build
+from agent_core.stages.fix import Fix
+from agent_core.stages.localize import Localize
+from agent_core.stages.push import Push
+from agent_core.stages.report import Report
+from agent_core.stages.test import Test
 from agent_core.tools.github_tools import  report_failure
-from agent_core.util.util import load_cfg, resolve_stage, generate_feedback, get_local_workspace, get_issues_from_env
+from agent_core.util.util import load_cfg, generate_feedback, get_local_workspace, get_issues_from_env
 from agent_core.util.logger import setup_logging, create_log_dir
-from agent_core.tools.local_repo_tools import reset_to_main
+from agent_core.tools.local_repo_tools import checkout_branch, reset_to_main
 
-#TODO refactor stage calling and handling
 #TODO rollback after issue is attempted so next one starts at main head
 #TODO check out issue branch before starting
-#TODO allow for configuring main branch name
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
     setup_logging("bugfix_pipeline", log_dir)
 
     cfg = load_cfg(get_local_workspace())
-
-    prepare_stages = ["prepare"]
-    localize_stages = ["localize"]
-    fix_stages = ["fix"]
-    validate_stages = ["build", "test"]
-    apply_stages = ["apply", "push"]
-    report_stages = ["report"]
-
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
@@ -36,139 +33,125 @@ def main():
     pipeline_metrics["issues_count"] = len(issues)
 
     for issue in issues:
-        issue_start_time = time.monotonic()
-        log_file = setup_logging(issue["number"], log_dir)
-        metrics_file = log_dir / f"issue_{issue['number']}_metrics.json"
+        try:
+            issue_start_time = time.monotonic()
+            log_file = setup_logging(issue["number"], log_dir)
+            metrics_file = log_dir / f"issue_{issue['number']}_metrics.json"
 
-        logging.info(f"=== Starting bug fix for issue #{issue['number']}: {issue['title']} ===")
+            logging.info(f"=== Starting bug fix for issue #{issue['number']}: {issue['title']} ===")
 
-        ctx = {
-            "bug": issue,
-            "cfg": cfg,
-            "attempt_history": [],
-            "log_dir": str(log_dir),
-            "metrics": {
-                "github_run_id": os.getenv("GITHUB_RUN_ID"),
-                "issue_number": issue["number"],
-                "issue_title": issue["title"],
-                "execution_times_stages": {},
-                "total_script_execution_time": 0.0,
-                "repair_successful": False,
-                "attempts": 1
-            },
-        }
+            context = {
+                "bug": issue,
+                "cfg": cfg,
 
-        prepare_success = False
-        for name in prepare_stages:
-            stage_cls = resolve_stage(name)
-            prepare_success, ctx = stage_cls().execute(ctx)
+                "state": {
+                    "current_stage": None,
+                    "current_attempt": 0,
+                    "branch": None,
+                    "repair_successful": False
+                },
 
-        if not prepare_success:
-            logging.error(f"!! Branch preparation failed for issue #{issue['number']}. Skipping.")
-            continue
+                "files": {
+                    "source_files": [],
+                    "fixed_files": [],
+                    "diff_file": None,
+                    "log_dir": str(log_dir),
+                },
 
-        localize_success = False
-        for name in localize_stages:
-            stage_cls = resolve_stage(name)
-            localize_success, ctx = stage_cls().execute(ctx)
-        if not localize_success:
-            logging.error(f"!! Localization failed for issue #{issue['number']}. Skipping.")
-            continue
+                "stages": {
 
-        attempt = 0
-        max_attempts = ctx["cfg"].get("max_attempts", 3)
-        fix_success = False
+                },
 
-        while attempt < max_attempts and not fix_success:
-            attempt += 1
-            ctx["metrics"]["current_attempt"] = attempt
-            ctx["metrics"]["total_attempts"] = attempt
+                "attempts": [],
 
-            logging.info(f"=== Attempt {attempt}/{max_attempts} for issue #{issue['number']} ===")
-
-            # Add history/context from previous attempts
-            if attempt > 1:
-                feedback = generate_feedback(ctx)
-                ctx["previous_attempt_feedback"] = feedback
-                logging.info(f"Added feedback from previous attempt")
-
-            fix_stage_success = False
-            for name in fix_stages:
-                stage_cls = resolve_stage(name)
-                fix_stage_success, ctx = stage_cls().execute(ctx)
-
-            if not fix_stage_success:
-                logging.error(f"!! Fix stage failed on attempt {attempt}")
-                continue
-
-            validation_success = False
-            for name in validate_stages:
-                stage_cls = resolve_stage(name)
-                validation_success, ctx = stage_cls().execute(ctx)
-
-            tests_passed = ctx.get("test_results", {}).get("status") == "success"
-            fix_success = tests_passed and localize_success and fix_stage_success and validation_success
-
-            attempt_result = {
-                "attempt": attempt,
-                "success": fix_success,
-                "fix_stage_success": fix_stage_success,
-                "validation_success": validation_success,
-                "test_results_summary": ctx.get("test_results", {}).get("status", "unknown")
+                "metrics": {
+                    "github_run_id": os.getenv("GITHUB_RUN_ID"),
+                    "issue_number": issue["number"],
+                    "issue_title": issue["title"],
+                    "execution_times_stages": {},
+                    "total_script_execution_time": 0.0,
+                    "repair_successful": False,
+                    "attempts": 1
+                },
             }
-            ctx["attempt_history"].append(attempt_result)
 
-            if fix_success:
-                ctx["metrics"]["repair_successful"] = True
-                logging.info(f"=== Repair successful on attempt {attempt}/{max_attempts} ===")
+            context["state"]["branch"] = checkout_branch(issue["number"], context.get("cfg").get("branch_prefix"))
+
+            context = Localize().execute(context)
+        
+            current_attempt = 0
+            max_attempts = context["cfg"].get("max_attempts", 3)
+            repair_successful = False
+
+            while not repair_successful and current_attempt < max_attempts:
+                current_attempt += 1
+                context["state"]["current_attempt"] = current_attempt
+
+                logging.info(f"=== Attempt {current_attempt}/{max_attempts} for issue #{issue['number']} ===")
+
+                attempt_data = {
+                    "attempt": current_attempt,
+                    "stages": {},
+                    "success": False
+                }
+                context["attempts"].append(attempt_data)
+
+                #TODO
+                #if current_attempt > 1:
+                    #feedback = generate_feedback(context)
+                    #context["previous_attempt_feedback"] = feedback
+                    #logging.info(f"Added feedback from previous attempt")
+
+                context = Fix().execute(context, retry=True)
+                
+                context = Build().execute(context, retry=True)
+                
+                if context["cfg"].get("test_cmd"):
+                    context = Test().execute(context, retry=True)
+                
+                repair_successful = context["state"].get("repair_successful", False)
+                
+                if repair_successful:
+                    context["attempts"][-1]["success"] = True
+                    logging.info(f"=== Repair successful on attempt {current_attempt}/{max_attempts} ===")
+                else:
+                    if current_attempt < max_attempts:
+                        logging.info(f"=== Repair failed on attempt {current_attempt}/{max_attempts}, trying again ===")
+                    else:
+                        logging.info(f"=== All {max_attempts} repair attempts failed ===")
+
+
+            if repair_successful:
+                context = Apply().execute(context)
+                context = Push().execute(context)
+                #context = Report().execute(context)
                 pipeline_metrics["successful_repairs"] += 1
-            elif attempt < max_attempts:
-                logging.info(f"=== Repair failed on attempt {attempt}/{max_attempts}, trying again ===")
             else:
-                logging.info(f"=== All {max_attempts} repair attempts failed ===")
+                report_failure(issue["number"], "Repair failed after max attempts")
 
-        if fix_success:
-            for name in apply_stages:
-                stage_cls = resolve_stage(name)
-                success, ctx = stage_cls().execute(ctx)
-                if not success:
-                    logging.warning(f"!! Post-processing stage {name} failed")
-
-            for name in report_stages:
-                stage_cls = resolve_stage(name)
-                success, ctx = stage_cls().execute(ctx)
-                if not success:
-                    logging.warning(f"!! Post-processing stage {name} failed")
-        else:
-            report_failure(issue["number"], "Repair failed after max attempts")
-
-        reset_to_main()
-
-        issue_end_time = time.monotonic()
-        issue_duration = round(issue_end_time - issue_start_time, 4)
-        ctx["metrics"]["script_execution_time_for_issue"] = issue_duration
-
-        pipeline_metrics["issues_processed"].append({
-            "issue_number": issue["number"],
-            "issue_title": issue["title"],
-            "repair_successful": fix_success,
-            "execution_time": issue_duration
-        })
-
-        with open(metrics_file, 'w') as f:
-            json.dump({
+            # for local usage (not in GitHub Actions)
+            reset_to_main()
+            
+            issue_duration = round(time.monotonic() - issue_start_time, 4)
+            context["metrics"]["script_execution_time_for_issue"] = issue_duration
+            pipeline_metrics["issues_processed"].append({
                 "issue_number": issue["number"],
                 "issue_title": issue["title"],
-                "metrics": ctx["metrics"],
-                "fixed_files": ctx.get("fixed_files", []),
-                "context": {k: v for k, v in ctx.items() if k != "bug"},
-            }, f, indent=2)
+                "repair_successful": repair_successful,
+                "execution_time": issue_duration
+            })
 
-        logging.info(f"== DONE == Metrics saved to {metrics_file}")
-        logging.info(f"Log file: {log_file}")
+            with open(metrics_file, 'w') as f:
+                json.dump(context, f, indent=2)
 
-    script_end_time = time.monotonic()
-    total_duration = script_end_time - script_start_time
+            logging.info(f"== DONE == Metrics saved to {metrics_file}")
+            logging.info(f"Log file: {log_file}")
+        
+        except Exception as e:
+            logging.error(f"!! Error processing issue #{issue['number']}: {e}", exc_info=True)
+
+
+    total_duration = time.monotonic() - script_start_time
     pipeline_metrics["total_execution_time"] = round(total_duration, 4)
     pipeline_file = Path(log_dir) / "pipeline_results.json"
     with open(pipeline_file, 'w') as f:

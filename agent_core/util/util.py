@@ -27,21 +27,6 @@ def load_cfg(work_space=None) -> dict:
     return cfg
 
 
-def resolve_stage(name: str):
-    """Import `agent_core.stages.<name>` and return its stage implementation class."""
-    module_path = f"agent_core.stages.{name}"
-    class_name = name.capitalize()
-    try:
-        module = importlib.import_module(module_path)
-    except ModuleNotFoundError as e:
-        raise RuntimeError(f"Stage '{name}': module '{module_path}' not found") from e
-    try:
-        stage_cls = getattr(module, class_name)
-    except AttributeError as e:
-        raise RuntimeError(f"Stage '{name}': Class '{class_name}' missing in {module_path}") from e
-    return stage_cls
-
-
 def get_issues_from_env():
     issues_json = os.environ.get("FILTERED_ISSUES")
     if not issues_json:

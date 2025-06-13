@@ -1,20 +1,15 @@
 import json, logging, os, sys, time
 from pathlib import Path
 
-from agent_core.stages.apply import Apply
 from agent_core.stages.build import Build
 from agent_core.stages.fix import Fix
 from agent_core.stages.localize import Localize
-from agent_core.stages.push import Push
-from agent_core.stages.report import Report
 from agent_core.stages.test import Test
-from agent_core.tools.github_tools import  report_failure
+from agent_core.tools.github_tools import report_failure, report_to_pr
 from agent_core.util.util import load_cfg, generate_feedback, get_local_workspace, get_issues_from_env
 from agent_core.util.logger import setup_logging, create_log_dir
-from agent_core.tools.local_repo_tools import checkout_branch, reset_to_main
+from agent_core.tools.local_repo_tools import checkout_branch, reset_to_main, apply_changes_to_branch, push_changes
 
-#TODO rollback after issue is attempted so next one starts at main head
-#TODO check out issue branch before starting
 def main():
     script_start_time = time.monotonic()
     log_dir = create_log_dir()
@@ -48,7 +43,7 @@ def main():
                     "current_stage": None,
                     "current_attempt": 0,
                     "branch": None,
-                    "repair_successful": False
+                    "repair_successful": False,
                 },
 
                 "files": {
@@ -68,8 +63,7 @@ def main():
                     "github_run_id": os.getenv("GITHUB_RUN_ID"),
                     "issue_number": issue["number"],
                     "issue_title": issue["title"],
-                    "execution_times_stages": {},
-                    "total_script_execution_time": 0.0,
+                    "execution_repair_stages": {},
                     "repair_successful": False,
                     "attempts": 1
                 },
@@ -120,20 +114,20 @@ def main():
                     else:
                         logging.info(f"=== All {max_attempts} repair attempts failed ===")
 
-
+            #TODO timings of apply stuff - maybe it should be stage?
             if repair_successful:
-                context = Apply().execute(context)
-                context = Push().execute(context)
-                #context = Report().execute(context)
+                context["files"]["diff_file"] = apply_changes_to_branch(context["state"]["branch"], context["files"]["fixed_files"], diff_dir=log_dir, commit_info=f"#{issue['number']}: {issue['title']}")
+                push_changes(context["state"]["branch"])
+                report_to_pr(context)
                 pipeline_metrics["successful_repairs"] += 1
             else:
-                report_failure(issue["number"], "Repair failed after max attempts")
+                report_failure(issue["number"], "Repair failed after max attempts", cfg.get("failed_fix_label"))
 
             # for local usage (not in GitHub Actions)
-            reset_to_main()
+            reset_to_main(context["files"]["fixed_files"])
             
             issue_duration = round(time.monotonic() - issue_start_time, 4)
-            context["metrics"]["script_execution_time_for_issue"] = issue_duration
+            context["metrics"]["script_execution_time"] = issue_duration
             pipeline_metrics["issues_processed"].append({
                 "issue_number": issue["number"],
                 "issue_title": issue["title"],

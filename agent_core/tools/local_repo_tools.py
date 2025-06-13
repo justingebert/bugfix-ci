@@ -149,3 +149,84 @@ def get_repo_structure(repo_path: Optional[str] = None) -> dict:
 
     logging.info(f"Repository structure: {structure}")
     return structure
+
+
+def apply_changes_to_branch(branch_name: str, fixed_files: list[str], diff_dir=None, commit_info:str = None) -> Optional[str]:
+    """
+    Apply changes to the specified branch and returns diff file.
+    """
+    try:
+        repo_path = get_local_workspace()
+        repo = git.Repo(repo_path)
+
+        if repo.active_branch.name != branch_name:
+            logging.info(f"Switching to branch {branch_name}")
+            repo.git.checkout(branch_name)
+
+        for file in fixed_files:
+            file_path = Path(repo_path) / file
+            if file_path.exists():
+                repo.git.add(str(file_path))
+                logging.info(f"Added file {file} to staging area")
+            else:
+                logging.warning(f"File {file} does not exist, skipping add")
+
+        diff = repo.git.diff("--staged")
+        if not diff:
+            logging.warning("No changes detected in staged files")
+            return None
+
+        if diff_dir:
+            diff_file = Path(str(diff_dir)) / f"issue_{commit_info}_diff.patch"
+            with open(diff_file, 'w') as f:
+                f.write(diff)
+
+            logging.info(f"Generated diff saved to {diff_file}")
+
+        staged_files = repo.git.diff("--name-only", "--staged").splitlines()
+        commit_msg = f"Fix issue {commit_info}"
+        repo.git.commit("-m", commit_msg)
+        logging.info(f"{len(staged_files)} files with changes committed to branch {branch_name}")
+
+        return str(diff_file)
+
+
+    except git.GitCommandError as e:
+        raise RuntimeError(f"Git error applying changes: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Error applying changes: {str(e)}")
+
+def push_changes(branch_name):
+    """
+    Push committed changes to remote repository.
+    """
+    github_token = os.environ.get("GITHUB_TOKEN")
+    if not github_token:
+        raise RuntimeError("GITHUB_TOKEN not set - changes committed but not pushed")
+
+    try:
+        repo_path = get_local_workspace()
+        repo = git.Repo(repo_path)
+
+        origin = repo.remote("origin")
+        original_url = next(origin.urls)
+
+        if original_url.startswith("https://"):
+            auth_url = original_url.replace("https://", f"https://x-access-token:{github_token}@")
+
+            origin.set_url(auth_url)
+
+            push_info = origin.push(branch_name)
+
+            if push_info[0].flags & push_info[0].ERROR:
+                raise RuntimeError( f"Push failed: {push_info[0].summary}")
+            else:
+                logging.info("Push successfull")
+
+    except git.GitCommandError as e:
+        raise RuntimeError(f"Git error: {str(e)}")
+    except Exception as e:
+        raise RuntimeError(f"Error pushing changes: {str(e)}")
+    finally:
+        if original_url.startswith("https://"):
+            origin.set_url(original_url)

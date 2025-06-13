@@ -58,7 +58,7 @@ class Stage:
             if retry and attempt > 0 and context.get("attempts"):
                 context["attempts"][-1]["stages"][self.name] = self.results
             
-            context["metrics"]["execution_times_stages"][stage_key] = round(stage_duration, 4)
+            context["metrics"]["execution_repair_stages"][stage_key] = round(stage_duration, 4)
             logging.info(f"== Stage {self.name} completed in {stage_duration:.4f} seconds ==")
 
             return context

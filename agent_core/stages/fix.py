@@ -2,11 +2,12 @@ import os
 import pathlib
 import logging
 import re
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
+
 from agent_core.stage import Stage, ResultStatus
 from google import genai
 from google.genai import types
-from agent_core.tools.file_tools import clean_code_from_llm_response
+from agent_core.tools.file_tools import clean_code_from_llm_response, load_source_files
 
 
 class Fix(Stage):
@@ -19,7 +20,7 @@ class Fix(Stage):
         if not source_files:
             raise RuntimeError(f"[{self.name}] No source files found in context for issue #{context['bug']['number']}")
 
-        files_content = self._load_source_files(source_files)
+        files_content = load_source_files(source_files)
 
         if not files_content:
             raise RuntimeError(f"[{self.name}] No readable source files found for issue #{context['bug']['number']}")
@@ -28,27 +29,12 @@ class Fix(Stage):
         raw_response = self._call_llm(prompt)
         
         fixed_files = self._parse_and_write_files(raw_response, files_content, source_files)
-
+        fixed_files_content = load_source_files(fixed_files)
         context["files"]["fixed_files"] = fixed_files
         logging.info(f"[{self.name}] Successfully edited {len(fixed_files)} files")
-        self.set_result(ResultStatus.SUCCESS, "Successfully fixed files", {"fixed_files": fixed_files})
+        self.set_result(ResultStatus.SUCCESS, "Successfully fixed files", {"fixed_files": fixed_files, "files_content": fixed_files_content})
 
         return context
-
-    def _load_source_files(self, source_files: List[str]) -> Dict[str, str]:
-        """Load source files and return their content as a dictionary."""
-        files_content = {}
-        for file_path in source_files:
-            try:
-                path_obj = pathlib.Path(file_path)
-                if path_obj.exists():
-                    files_content[file_path] = path_obj.read_text()
-                    logging.info(f"[{self.name}] Loaded file: {file_path}")
-                else:
-                    logging.warning(f"[{self.name}] File not found: {file_path}")
-            except Exception as e:
-                logging.error(f"[{self.name}] Error reading file {file_path}: {e}")
-        return files_content
 
     def _build_prompt(self, files_content: Dict[str, str], previous_feedback: str = "") -> str:
         """Build the prompt for the LLM with all files and context."""

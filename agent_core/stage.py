@@ -31,7 +31,7 @@ class Stage:
     def run(self, context):
         raise NotImplementedError
     
-    def execute(self, context, retry = False) -> tuple[bool, dict]:
+    def execute(self, context, retry = False) -> dict:
         """Execute the stage with timing, metrics and error handling
         Args:
             context (dict): The context dictionary containing state, history and configuration.
@@ -65,4 +65,4 @@ class Stage:
             
         except Exception as e:
             stage_duration = time.monotonic() - stage_start_time
-            raise RuntimeError(f"!! Stage {self.name} failed after {stage_duration:.4f} seconds: {e}", exc_info=True)
+            raise RuntimeError(f"!! Stage {self.name} failed after {stage_duration:.4f} seconds: {e}")

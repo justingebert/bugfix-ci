@@ -90,11 +90,9 @@ def main():
                 }
                 context["attempts"].append(attempt_data)
 
-                #TODO
-                #if current_attempt > 1:
-                    #feedback = generate_feedback(context)
-                    #context["previous_attempt_feedback"] = feedback
-                    #logging.info(f"Added feedback from previous attempt")
+                if current_attempt > 1:
+                    feedback = generate_feedback(context["attempts"])
+                    context["previous_attempt_feedback"] = feedback
 
                 context = Fix().execute(context, retry=True)
                 
@@ -111,6 +109,7 @@ def main():
                 else:
                     if current_attempt < max_attempts:
                         logging.info(f"=== Repair failed on attempt {current_attempt}/{max_attempts}, trying again ===")
+                        #TODO reset edited files
                     else:
                         logging.info(f"=== All {max_attempts} repair attempts failed ===")
 
@@ -140,6 +139,9 @@ def main():
 
             logging.info(f"== DONE == Metrics saved to {metrics_file}")
             logging.info(f"Log file: {log_file}")
+
+            #sleep for 4sec (to avoid hitting API rate limits for free tier)
+            time.sleep(4)
         
         except Exception as e:
             logging.error(f"!! Error processing issue #{issue['number']}: {e}", exc_info=True)

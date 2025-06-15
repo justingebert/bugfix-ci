@@ -7,11 +7,12 @@ import logging
 from google import genai
 from google.genai import types
 from agent_core.stage import Stage, ResultStatus
+from agent_core.tools.file_tools import load_source_files
 from agent_core.tools.local_repo_tools import find_file, get_local_workspace, get_repo_tree
 
 TITLE_RE = re.compile(r"Problem in (\S+)")
 
-
+##TODO continue here with adding source file dict for attempt retry
 class Localize(Stage):
     name = "localize"
 
@@ -23,6 +24,7 @@ class Localize(Stage):
             raise RuntimeError(f"[{self.name}] Failed to localize Files for Issue #{context['bug']['number']}")
 
         context["files"]["source_files"] = source_files
+        context["files"]["original_source_files"] = load_source_files(source_files)
 
         self.set_result(ResultStatus.SUCCESS,
                         f"Identified source files for issue #{context['bug']['number']}: {source_files}",
@@ -52,28 +54,27 @@ class Localize(Stage):
             Example: ["path/to/file1.py", "path/to/file2.py"]
         """
 
-        try:
-            client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                config=types.GenerateContentConfig(
-                    system_instruction="You are a bug localization system. Look at the issue description and return ONLY the exact file paths that need to be modified."),
-                contents=prompt,
-            )
+        raw_response = self.call_llm(prompt)
+        logging.info(f"[{self.name}] LLM response: {raw_response}")
 
-            raw_response = response.text
-            logging.info(f"[{self.name}] LLM response: {raw_response}")
-
-            json_match = re.search(r'\[\s*"[^"]*"(?:\s*,\s*"[^"]*")*\s*\]', raw_response)
-            if json_match:
-                file_paths = json.loads(json_match.group(0))
-                # Convert to absolute paths
-                abs_paths = [str(search_path / path) for path in file_paths]
-                return abs_paths
-            else:
-                logging.warning(f"[{self.name}] Could not parse file paths from LLM response")
-                return []
-
-        except Exception as e:
-            logging.error(f"[{self.name}] Error querying LLM: {str(e)}")
+        json_match = re.search(r'\[\s*"[^"]*"(?:\s*,\s*"[^"]*")*\s*\]', raw_response)
+        if json_match:
+            file_paths = json.loads(json_match.group(0))
+            # Convert to absolute paths
+            abs_paths = [str(search_path / path) for path in file_paths]
+            return abs_paths
+        else:
+            logging.warning(f"[{self.name}] Could not parse file paths from LLM response")
             return []
+
+
+    def call_llm(self, prompt):
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            config=types.GenerateContentConfig(
+                system_instruction="You are a bug localization system. Look at the issue description and return ONLY the exact file paths that need to be modified."),
+            contents=prompt,
+        )
+        raw_response = response.text
+        return raw_response

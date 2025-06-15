@@ -39,48 +39,68 @@ def get_issues_from_env():
 import difflib
 
 
-def generate_feedback(ctx):
+def generate_feedback(context):
     """Generate feedback from test results and code changes for the next fix attempt"""
-    test_results = ctx.get("test_results", {})
-    test_details = test_results.get("details", [])
-    attempt = ctx["metrics"]["current_attempt"]
 
-    feedback = f"Previous fix attempt #{attempt} failed. "
+    attempts = context.get("attempts", [])
 
-    # Add test failure information
-    if test_details:
-        failures = [d for d in test_details if d.get("status") == "failure"]
-        if failures:
-            feedback += "Test failures:\n"
-            for failure in failures:
-                feedback += f"- File: {failure.get('file')}\n"
-                if failure.get('stdout'):
-                    feedback += f"  Stdout: {failure.get('stdout')}\n"
-                if failure.get('stderr'):
-                    feedback += f"  Stderr: {failure.get('stderr')}\n"
+    if not context or len(context) <= 1:
+        return ""
 
-    # Add diff from the original code to the current version
-    original_code = ctx.get("original_code")
-    current_code = ""
-    if ctx.get("fixed_files"):
-        file_path = ctx.get("fixed_files")[0]
-        with open(file_path, 'r') as f:
-            current_code = f.read()
 
-    if original_code and current_code:
-        diff = difflib.unified_diff(
-            original_code.splitlines(keepends=True),
-            current_code.splitlines(keepends=True),
-            fromfile='original',
-            tofile='current',
-            n=3
-        )
-        diff_text = ''.join(diff)
+    original_files = context.get("files", {}).get("source_files", {})
+    feedback = ""
+    # Exclude current attempt (last one in the list)
+    previous_attempts = attempts[:-1]
+    
+    for idx, attempt in enumerate(previous_attempts, 1):
+        feedback = f"Attempt #{idx+1}:"
 
-        if diff_text:
-            feedback += "\nChanges made in the previous attempt:\n"
-            feedback += "```diff\n"
-            feedback += diff_text
-            feedback += "```\n"
+        edited_files = attempt["stages"]["fix"]["results"]["files_content"]
+
+        if original_files and edited_files:
+            feedback += "Code Changes:\n"
+            
+            # Compare each file that was edited
+            for file_path, edited_content in edited_files.items():
+                if file_path in original_files:
+                    original_content = original_files[file_path]
+                    
+                    # Only generate diff if content actually changed
+                    if original_content != edited_content:
+                        feedback += f"\n--- Changes in {file_path} ---\n"
+                        
+                        diff = difflib.unified_diff(
+                            original_content.splitlines(keepends=True),
+                            edited_content.splitlines(keepends=True),
+                            fromfile=f'original/{file_path}',
+                            tofile=f'attempt_{idx}/{file_path}',
+                            n=3
+                        )
+                        diff_text = ''.join(diff)
+                        
+                        if diff_text:
+                            feedback += "```diff\n"
+                            feedback += diff_text
+                            feedback += "```\n"
+                        else:
+                            feedback += "Files are identical (no diff generated)\n"
+                    else:
+                        feedback += f"\n--- {file_path}: NO CHANGES ---\n"
+
+        if attempt.get("stages").get("build", {}):
+            feedback += "\nBuild Results:\n"
+            build_results = attempt.get("stages").get("build").get("status", {})
+            build_details = attempt.get("stages").get("build").get("details", {})
+            feedback += f"Status: {build_results}\n"
+            feedback += f"Details: {build_details}\n"
+
+        if attempt.get("stages").get("test", {}):
+            feedback += "\nTest Results:\n"
+            test_results = attempt.get("stages").get("test").get("status", {})
+            test_details = attempt.get("stages").get("test").get("details", {})
+            feedback += f"Status: {test_results}\n"
+            feedback += f"Details: {test_details}\n"
+
 
     return feedback

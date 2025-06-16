@@ -111,7 +111,7 @@ def run_command(command: list[str], file_path: Path) -> tuple[bool, str, str]:
         return False, "", f"Error running command {' '.join(command)}: {e}"
 
 
-def reset_to_main(files: Optional[Iterable[str]] = None) -> bool:
+def reset_files(files: Optional[Iterable[str]] = None, branch: str = None) -> bool:
     """Reset git to main branch and clean working directory"""
     try:
         repo_path = get_local_workspace()
@@ -128,15 +128,14 @@ def reset_to_main(files: Optional[Iterable[str]] = None) -> bool:
                 else:
                     logging.warning(f"File {file} does not exist, skipping reset")
 
-        repo.git.checkout('main')
-        logging.info("Successfully reset to main branch")
-        return True
+        if branch:
+            repo.git.checkout(branch)
+            logging.info("Successfully reset to main branch")
+            
     except git.GitCommandError as e:
-        logging.error(f"Git error resetting to main branch: {e}")
-        return False
+        raise RuntimeError(f"Git error resetting to main branch: {e}")
     except Exception as e:
-        logging.error(f"Error resetting to main branch: {str(e)}")
-        return False
+        raise RuntimeError(f"Error resetting to main branch: {str(e)}")
 
 #TODO get repo stucture with files as keys and functions/classes as values
 def get_repo_structure(repo_path: Optional[str] = None) -> dict:

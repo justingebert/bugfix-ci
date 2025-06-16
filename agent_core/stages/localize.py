@@ -18,7 +18,7 @@ class Localize(Stage):
 
     def run(self, context):
 
-        source_files = self._find_files_with_llm(context)
+        source_files, tokens = self._find_files_with_llm(context)
 
         if not source_files:
             raise RuntimeError(f"[{self.name}] Failed to localize Files for Issue #{context['bug']['number']}")
@@ -28,20 +28,20 @@ class Localize(Stage):
 
         self.set_result(ResultStatus.SUCCESS,
                         f"Identified source files for issue #{context['bug']['number']}: {source_files}",
-                        {"source_files": source_files})
+                        {"source_files": source_files, "tokens": tokens})
 
         logging.info(f"[{self.name}] Identified source files: {source_files}")
         return context
 
-    def _find_files_with_llm(self, ctx):
-        """Use Google's Gemini model to identify relevant files for the issue."""
-        workdir = ctx.get("cfg").get("workdir", "")
+    def _find_files_with_llm(self, context):
+        """Use LLM model to identify relevant files for the issue."""
+        workdir = context.get("cfg").get("workdir", "")
         repo_path = Path(get_local_workspace())
         search_path = repo_path / workdir if workdir else repo_path
 
         repo_files = get_repo_tree(search_path)
 
-        issue = ctx["bug"]
+        issue = context["bug"]
         prompt = f"""Given the following GitHub issue and repository structure, identify the file(s) that need to be modified to fix the issue.
 
             Issue #{issue['number']}: {issue['title']}
@@ -54,7 +54,9 @@ class Localize(Stage):
             Example: ["path/to/file1.py", "path/to/file2.py"]
         """
 
-        raw_response = self.call_llm(prompt)
+        system_instruction = "You are a bug localization system. Look at the issue description and return ONLY the exact file paths that need to be modified."
+
+        raw_response, tokens = self.llm.generate(prompt, system_instruction)
         logging.info(f"[{self.name}] LLM response: {raw_response}")
 
         json_match = re.search(r'\[\s*"[^"]*"(?:\s*,\s*"[^"]*")*\s*\]', raw_response)
@@ -62,19 +64,7 @@ class Localize(Stage):
             file_paths = json.loads(json_match.group(0))
             # Convert to absolute paths
             abs_paths = [str(search_path / path) for path in file_paths]
-            return abs_paths
+            return abs_paths, tokens
         else:
             logging.warning(f"[{self.name}] Could not parse file paths from LLM response")
-            return []
-
-
-    def call_llm(self, prompt):
-        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-                system_instruction="You are a bug localization system. Look at the issue description and return ONLY the exact file paths that need to be modified."),
-            contents=prompt,
-        )
-        raw_response = response.text
-        return raw_response
+            return [], tokens

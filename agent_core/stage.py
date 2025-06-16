@@ -14,7 +14,8 @@ class ResultStatus(Enum):
 class Stage:
     name = "base"
 
-    def __init__(self):
+    def __init__(self, llm=None):
+        self.llm = llm
         self.results = {
             "status": ResultStatus.UNKNOWN.value,
             "message": "",

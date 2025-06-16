@@ -25,14 +25,15 @@ class Fix(Stage):
         if not files_content:
             raise RuntimeError(f"[{self.name}] No readable source files found for issue #{context['bug']['number']}")
 
+        system_instruction = "You are part of an automated bug-fixing system. Please return the complete, corrected raw source files for each file that needs changes, never use any markdown formatting. Follow the exact format requested."
         prompt = self._build_prompt(files_content, context.get("previous_attempt_feedback", ""))
-        raw_response = self._call_llm(prompt)
+        raw_response, tokens = self.llm.generate(prompt, system_instruction)
         
         fixed_files = self._parse_and_write_files(raw_response, files_content, source_files)
         fixed_files_content = load_source_files(fixed_files)
         context["files"]["fixed_files"] = fixed_files
         logging.info(f"[{self.name}] Successfully edited {len(fixed_files)} files")
-        self.set_result(ResultStatus.SUCCESS, "Successfully fixed files", {"fixed_files": fixed_files, "files_content": fixed_files_content})
+        self.set_result(ResultStatus.SUCCESS, "Successfully fixed files", {"fixed_files": fixed_files, "files_content": fixed_files_content, "tokens": tokens})
 
         return context
 
@@ -79,17 +80,6 @@ Format your response as:
 """
         return base_prompt
 
-    def _call_llm(self, prompt: str) -> str:
-        """Call the LLM with the given prompt and return the response."""
-        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-                system_instruction="You are part of an automated bug-fixing system. Please return the complete, corrected raw source files for each file that needs changes, never use any markdown formatting. Follow the exact format requested."),
-            contents=prompt,
-        )
-        logging.info(f"[{self.name}] LLM response length: {len(response.text)} characters")
-        return response.text
 
     def _parse_llm_response(self, raw_response: str) -> List[Tuple[str, str]]:
         """Parse LLM response and extract file changes as (filepath, content) tuples."""

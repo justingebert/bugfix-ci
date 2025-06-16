@@ -1,6 +1,7 @@
 import json, logging, os, sys, time
 from pathlib import Path
 
+from agent_core.llm.llm import LLM
 from agent_core.stages.build import Build
 from agent_core.stages.fix import Fix
 from agent_core.stages.localize import Localize
@@ -27,6 +28,10 @@ def main():
     setup_logging("bugfix_pipeline", log_dir)
 
     cfg = load_cfg(get_local_workspace())
+    llm = LLM(
+        provider=cfg.get("LLM_PROVIDER", "google"),
+        model=cfg.get("LLM_MODEL", "gemini-2.0-flash"),
+    )
 
     pipeline_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
@@ -38,51 +43,53 @@ def main():
     issues = get_issues_from_env()
     pipeline_metrics["issues_count"] = len(issues)
     for issue in issues:
+        issue_start_time = time.monotonic()
+        log_file = setup_logging(issue["number"], log_dir)
+        metrics_file = log_dir / f"issue_{issue['number']}_metrics.json"
+        llm.track_nested_usage(issue["number"])
+
+        logging.info(
+            f"=== Starting bug fix for issue #{issue['number']}: {issue['title']} ==="
+        )
+
+        context = {
+            "bug": issue,
+            "cfg": cfg,
+            "state": {
+                "current_stage": None,
+                "current_attempt": 0,
+                "branch": None,
+                "repair_successful": False,
+            },
+            "files": {
+                "source_files": [],
+                "fixed_files": [],
+                "diff_file": None,
+                "log_dir": str(log_dir),
+            },
+            "stages": {},
+            "attempts": [],
+            "metrics": {
+                "github_run_id": os.getenv("GITHUB_RUN_ID"),
+                "issue_number": issue["number"],
+                "issue_title": issue["title"],
+                "execution_repair_stages": {},
+                "repair_successful": False,
+                "attempts": 1,
+            },
+        }
+
+        repair_successful = False
+
         try:
-            issue_start_time = time.monotonic()
-            log_file = setup_logging(issue["number"], log_dir)
-            metrics_file = log_dir / f"issue_{issue['number']}_metrics.json"
-
-            logging.info(
-                f"=== Starting bug fix for issue #{issue['number']}: {issue['title']} ==="
-            )
-
-            context = {
-                "bug": issue,
-                "cfg": cfg,
-                "state": {
-                    "current_stage": None,
-                    "current_attempt": 0,
-                    "branch": None,
-                    "repair_successful": False,
-                },
-                "files": {
-                    "source_files": [],
-                    "fixed_files": [],
-                    "diff_file": None,
-                    "log_dir": str(log_dir),
-                },
-                "stages": {},
-                "attempts": [],
-                "metrics": {
-                    "github_run_id": os.getenv("GITHUB_RUN_ID"),
-                    "issue_number": issue["number"],
-                    "issue_title": issue["title"],
-                    "execution_repair_stages": {},
-                    "repair_successful": False,
-                    "attempts": 1,
-                },
-            }
-
             context["state"]["branch"] = checkout_branch(
                 issue["number"], context.get("cfg").get("branch_prefix")
             )
 
-            context = Localize().execute(context)
+            context = Localize(llm=llm).execute(context)
 
             current_attempt = 0
             max_attempts = context["cfg"].get("max_attempts", 3)
-            repair_successful = False
 
             while not repair_successful and current_attempt < max_attempts:
                 current_attempt += 1
@@ -103,7 +110,7 @@ def main():
                     feedback = generate_feedback(context)
                     context["previous_attempt_feedback"] = feedback
 
-                context = Fix().execute(context, retry=True)
+                context = Fix(llm=llm).execute(context, retry=True)
 
                 context = Build().execute(context, retry=True)
 
@@ -141,7 +148,9 @@ def main():
                 # report_failure(issue["number"], "Repair failed after max attempts", cfg.get("failed_fix_label"))
 
             # for local usage (not in GitHub Actions)
-            reset_files(context["files"]["fixed_files"], branch=context["cfg"]["default_branch"])
+            reset_files(
+                context["files"]["fixed_files"], branch=context["cfg"]["main_branch"]
+            )
 
         except Exception as e:
             logging.error(
@@ -155,6 +164,7 @@ def main():
                     "issue_number": issue["number"],
                     "issue_title": issue["title"],
                     "repair_successful": repair_successful,
+                    "tokens": llm.pop_nested_usage(issue["number"]),
                     "execution_time": issue_duration,
                 }
             )
@@ -165,11 +175,12 @@ def main():
             logging.info(f"== DONE == Metrics saved to {metrics_file}")
             logging.info(f"Log file: {log_file}")
 
-            # sleep for 4sec (to avoid hitting API rate limits for free tier)
+            # sleep for Xsec (to avoid hitting API rate limits for free tier)
             time.sleep(8)
 
     total_duration = time.monotonic() - script_start_time
     pipeline_metrics["total_execution_time"] = round(total_duration, 4)
+    pipeline_metrics["llm_usage"] = llm.get_usage()
     pipeline_file = Path(log_dir) / "pipeline_results.json"
     with open(pipeline_file, "w") as f:
         json.dump(pipeline_metrics, f, indent=2)

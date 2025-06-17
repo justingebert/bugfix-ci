@@ -56,7 +56,7 @@ def generate_feedback(context):
     for idx, attempt in enumerate(previous_attempts, 1):
         feedback = f"Attempt #{idx+1}:"
 
-        edited_files = attempt["stages"]["fix"]["results"]["files_content"]
+        edited_files = attempt["stages"]["fix"]["details"]["files_content"]
 
         if original_files and edited_files:
             feedback += "Code Changes:\n"

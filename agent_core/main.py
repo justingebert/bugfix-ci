@@ -129,7 +129,7 @@ def main():
                         logging.info(
                             f"=== Repair failed on attempt {current_attempt}/{max_attempts}, trying again ==="
                         )
-                        # TODO reset edited files
+                        reset_files(context["files"]["fixed_files"])
                     else:
                         logging.info(
                             f"=== All {max_attempts} repair attempts failed ==="

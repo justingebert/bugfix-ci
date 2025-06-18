@@ -48,7 +48,7 @@ def generate_feedback(context):
         return ""
 
 
-    original_files = context.get("files", {}).get("source_files", {})
+    original_files = context.get("files", {}).get("original_source_files", {})
     feedback = ""
     # Exclude current attempt (last one in the list)
     previous_attempts = attempts[:-1]

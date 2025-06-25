@@ -80,7 +80,7 @@ def main():
         }
 
         repair_successful = False
-
+        current_attempt = 0
         try:
             context["state"]["branch"] = checkout_branch(
                 issue["number"], context.get("cfg").get("branch_prefix")
@@ -88,7 +88,6 @@ def main():
 
             context = Localize(llm=llm).execute(context)
 
-            current_attempt = 0
             max_attempts = context["cfg"].get("max_attempts", 3)
 
             while not repair_successful and current_attempt < max_attempts:
@@ -164,6 +163,7 @@ def main():
                     "issue_number": issue["number"],
                     "issue_title": issue["title"],
                     "repair_successful": repair_successful,
+                    "attempts": current_attempt,
                     "tokens": llm.pop_nested_usage(issue["number"]),
                     "execution_time": issue_duration,
                 }

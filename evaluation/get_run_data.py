@@ -270,7 +270,6 @@ def main():
     }
 
     workflow_name = "auto-fix.yml"
-    base_dir = "workflow_runs"
     
     print(f"Analyzing workflow runs for {workflow_name} in repository {repo}")
 

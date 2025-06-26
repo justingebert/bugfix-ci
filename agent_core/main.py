@@ -162,6 +162,7 @@ def main():
                 {
                     "issue_number": issue["number"],
                     "issue_title": issue["title"],
+                    "model": context["cfg"]["model"],
                     "repair_successful": repair_successful,
                     "attempts": current_attempt,
                     "tokens": llm.pop_nested_usage(issue["number"]),

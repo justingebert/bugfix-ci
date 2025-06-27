@@ -5,7 +5,7 @@ workdir: "quixbugs/python_programs"
 test_cmd: "pytest"
 branch_prefix: "bugfix_v01_"
 main_branch: "main"
-max_issues: 3
+max_issues: 5
 max_attempts: 3
 provider: "google"
 model: "gemini-2.0-flash"

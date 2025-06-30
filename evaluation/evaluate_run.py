@@ -8,15 +8,17 @@ def calculate_metrics(run_path):
     bugfix_results_file = run_path / "bugfix_results.json"
     ci_run_data_file = run_path / "ci_run_data.json"
 
+    if not bugfix_results_file.exists() or not ci_run_data_file.exists():
+        print(f"Error: Required files not found in {run_path}. Ensure 'bugfix_results.json' and 'ci_run_data.json' exist.")
+        return None
+
     bugfix_results = {}
-    if not bugfix_results_file.exists():
-        with open(bugfix_results_file, 'r') as f:
-            bugfix_results = json.load(f)
+    with open(bugfix_results_file, 'r') as f:
+        bugfix_results = json.load(f)
 
     ci_run_data = {}
-    if ci_run_data_file.exists():
-        with open(ci_run_data_file, 'r') as f:
-            ci_run_data = json.load(f)
+    with open(ci_run_data_file, 'r') as f:
+        ci_run_data = json.load(f)
 
     issues = bugfix_results.get("issues_processed", [])
     num_issues = len(issues)

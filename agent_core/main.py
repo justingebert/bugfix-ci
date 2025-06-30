@@ -180,7 +180,7 @@ def main():
 
     total_duration = time.monotonic() - script_start_time
     bugfix_metrics["total_execution_time"] = round(total_duration, 4)
-    bugfix_metrics["model"]: context["cfg"]["model"]
+    bugfix_metrics["model"] = context["cfg"]["model"]
     bugfix_metrics["llm_usage"] = llm.get_usage()
     results_file = Path(log_dir) / "bugfix_results.json"
     with open(results_file, "w") as f:

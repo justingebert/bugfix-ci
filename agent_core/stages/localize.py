@@ -1,11 +1,8 @@
 import json
-import os
 import re
 from pathlib import Path
 import logging
 
-from google import genai
-from google.genai import types
 from agent_core.stage import Stage, ResultStatus
 from agent_core.tools.file_tools import load_source_files
 from agent_core.tools.local_repo_tools import find_file, get_local_workspace, get_repo_tree

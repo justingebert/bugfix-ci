@@ -167,11 +167,12 @@ def get_run_data(workflow_name, run_limit=1):
     print(f"Found {len(filtered_runs)} non-skipped runs")
 
     for run in filtered_runs:
+        run_id = run["id"]
         run_folder = f"run_{run_id}"
         os.makedirs(run_folder, exist_ok=True)
         print(f"Created folder for run {run_id}: {run_folder}")
 
-        run_id = run["id"]
+        run_id = run_id
         run_data = {
             "run_id": run_id,
             "status": run["status"],
@@ -236,7 +237,7 @@ def calculate_total_duration(jobs):
 
 
 def main():
-    global token, repo
+    global token, repo, headers
 
     load_dotenv()
 
@@ -256,7 +257,7 @@ def main():
 
     workflow_name = "auto-fix.yml"
     
-    print(f"Analyzing workflow runs for {workflow_name} in repository {repo}")
+    print(f"fetching workflow runs for {workflow_name} in repository {repo}")
 
     get_run_data(workflow_name)
 

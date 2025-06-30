@@ -10,35 +10,33 @@ token = None
 repo = None
 headers = None
 
+api_url = "https://api.github.com/repos/"
 
 def get_workflow_runs(workflow_name, run_limit=30):
     """Get runs for a specific workflow by name or ID"""
-    # Get the workflow ID if a name was provided
+    # with id
     workflow_id = workflow_name
     if not str(workflow_name).isdigit():
-        # If workflow_name is not a numeric ID, get the ID from the name
-        workflow_url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_name}"
+        workflow_url = f"{api_url}{repo}/actions/workflows/{workflow_name}"
         response = requests.get(workflow_url, headers=headers)
         response.raise_for_status()
         workflow_id = response.json().get("id")
     
-    # Get the runs for this workflow
-    url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow_id}/runs"
+    # get by id
+    url = f"{api_url}{repo}/actions/workflows/{workflow_id}/runs"
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     
     runs = response.json().get("workflow_runs", [])
-    return runs[:run_limit]  # Limit to recent runs
+    return runs[:run_limit]  # limit
 
 def filter_non_skipped_runs(runs):
-    """Filter out workflow runs that didn't actually execute (skipped jobs)"""
-    # The workflow itself might show 'success' even if skipped
-    # Look for runs that have jobs that completed (not skipped)
+    """filter out workflow runs that are skipped because of no issues to process"""
     filtered_runs = []
     
     for run in runs:
         run_id = run["id"]
-        jobs_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs"
+        jobs_url = f"{api_url}{repo}/actions/runs/{run_id}/jobs"
         response = requests.get(jobs_url, headers=headers)
         
         if response.status_code == 200:
@@ -52,7 +50,7 @@ def filter_non_skipped_runs(runs):
 
 def get_run_usage_metrics(run_id):
     """Get usage metrics for a specific workflow run"""
-    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/timing"
+    url = f"{api_url}{repo}/actions/runs/{run_id}/timing"
     
     response = requests.get(url, headers=headers)
     response.raise_for_status()
@@ -61,7 +59,7 @@ def get_run_usage_metrics(run_id):
 
 def get_run_artifacts(run_id):
     """Get artifacts for a specific workflow run"""
-    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts"
+    url = f"{api_url}{repo}/actions/runs/{run_id}/artifacts"
     
     response = requests.get(url, headers=headers)
     response.raise_for_status()
@@ -70,7 +68,7 @@ def get_run_artifacts(run_id):
 
 def get_run_jobs(run_id):
     """Get detailed job information for a specific workflow run"""
-    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs"
+    url = f"{api_url}{repo}/actions/runs/{run_id}/jobs"
     
     response = requests.get(url, headers=headers)
     response.raise_for_status()
@@ -96,7 +94,6 @@ def get_run_jobs(run_id):
             "started_at": job["started_at"],
             "completed_at": job["completed_at"],
             "duration_seconds": duration,
-            "url": job["html_url"]
         })
     
     return job_details
@@ -161,18 +158,19 @@ def download_artifact(artifact, destination_folder):
         return [artifact_path]
 
 
-def analyze_workflow(workflow_name, run_limit=30):
-    """Analyze a specific workflow: get runs, metrics, and artifacts"""
-    # Get all recent runs for the workflow
+def get_run_data(workflow_name, run_limit=1):
+    """get runs, metrics, and artifacts of a workflow"""
     all_runs = get_workflow_runs(workflow_name, run_limit)
     print(f"Found {len(all_runs)} total runs")
-    
-    # Filter out skipped runs
-    filtered_runs = filter_non_skipped_runs(all_runs)
-    print(f"Found {len(filtered_runs)} runs with actual execution (non-skipped)")
 
-    # Collect data for each run
+    filtered_runs = filter_non_skipped_runs(all_runs)
+    print(f"Found {len(filtered_runs)} non-skipped runs")
+
     for run in filtered_runs:
+        run_folder = f"run_{run_id}"
+        os.makedirs(run_folder, exist_ok=True)
+        print(f"Created folder for run {run_id}: {run_folder}")
+
         run_id = run["id"]
         run_data = {
             "run_id": run_id,
@@ -183,33 +181,18 @@ def analyze_workflow(workflow_name, run_limit=30):
             "html_url": run["html_url"]
         }
         
-        # Get detailed job information
+        # fetch detailed job information
         try:
             jobs = get_run_jobs(run_id)
             run_data["jobs"] = jobs
 
-            # Calculate total run duration from earliest job start to latest job completion
-            if jobs:
-                # Filter jobs with valid timestamps
-                valid_jobs = [job for job in jobs if job.get("started_at") and job.get("completed_at")]
-                
-                if valid_jobs:
-                    # Convert ISO strings to datetime objects
-                    start_times = [datetime.fromisoformat(job["started_at"].replace("Z", "+00:00")) for job in valid_jobs]
-                    end_times = [datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00")) for job in valid_jobs]
-                    
-                    # Find earliest start and latest end
-                    earliest_start = min(start_times)
-                    latest_end = max(end_times)
-                    
-                    # Calculate total duration
-                    total_duration = (latest_end - earliest_start).total_seconds()
-                    run_data["total_duration_seconds"] = total_duration
+            total_duration = calculate_total_duration(jobs)
+            run_data["total_duration_seconds"] = total_duration
         except Exception as e:
             print(f"Error getting job details for run {run_id}: {e}")
             run_data["jobs"] = None
         
-        # Get usage metrics
+        # fetch usage metrics
         try:
             metrics = get_run_usage_metrics(run_id)
             run_data["metrics"] = metrics
@@ -217,47 +200,49 @@ def analyze_workflow(workflow_name, run_limit=30):
             print(f"Error getting metrics for run {run_id}: {e}")
             run_data["metrics"] = None
         
-        # Get artifacts
+        # fetch artifacts
         try:
             artifacts = get_run_artifacts(run_id)
             run_data["artifacts"] = artifacts
-            
-            # If run has artifacts and we're saving individual runs, create folder and download artifacts
-            if len(artifacts) > 0:
-                # Create a folder for this run
-                run_folder = f"run_{run_id}"
-                os.makedirs(run_folder, exist_ok=True)
-                print(f"Created folder for run {run_id}: {run_folder}")
-                
-                # Save run data to the folder
-                run_data_file = os.path.join(run_folder, "run_data.json")
-                with open(run_data_file, "w") as f:
-                    json.dump(run_data, f, indent=2)
-                print(f"Saved run data to {run_data_file}")
-                
-                # Download artifacts
-                artifact_files = []
-                for artifact in artifacts:
-                    try:
-                        extracted_files = download_artifact(artifact, run_folder)
-                        artifact_files.extend(extracted_files)
-                        print(f"Downloaded and extracted artifact: {artifact['name']}")
-                    except Exception as e:
-                        print(f"Error downloading artifact {artifact['name']}: {e}")
-                
-                run_data["extracted_artifacts"] = artifact_files
+
+            for artifact in artifacts:
+                try:
+                    download_artifact(artifact, run_folder)
+                    print(f"Downloaded and extracted artifact: {artifact['name']}")
+                except Exception as e:
+                    print(f"Error downloading artifact {artifact['name']}: {e}")
             
         except Exception as e:
             print(f"Error getting artifacts for run {run_id}: {e}")
             run_data["artifacts"] = None
 
+        ci_run_data_file = os.path.join(run_folder, "ci_run_data.json")
+        with open(ci_run_data_file, "w") as f:
+            json.dump(run_data, f, indent=2)
+        print(f"Saved run data to {ci_run_data_file}")
+
+
+def calculate_total_duration(jobs):
+    if not jobs:
+        return 0
+    start_times = [datetime.fromisoformat(job["started_at"].replace("Z", "+00:00")) for job in jobs]
+    end_times = [datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00")) for job in jobs]
+
+    earliest_start = min(start_times)
+    latest_end = max(end_times)
+
+    total_duration = (latest_end - earliest_start).total_seconds()
+    return total_duration
+
+
 def main():
-    global token, repo, headers
+    global token, repo
 
     load_dotenv()
 
     token = os.environ.get("GITHUB_TOKEN")
     repo = os.environ.get("GITHUB_REPO")
+
 
     if not token or not repo:
         print("Error: GITHUB_TOKEN and GITHUB_REPO environment variables must be set")
@@ -273,7 +258,7 @@ def main():
     
     print(f"Analyzing workflow runs for {workflow_name} in repository {repo}")
 
-    analyze_workflow(workflow_name)
+    get_run_data(workflow_name)
 
 
 if __name__ == "__main__":

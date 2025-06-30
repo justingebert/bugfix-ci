@@ -33,7 +33,7 @@ def main():
         model=cfg.get("LLM_MODEL", "gemini-2.0-flash"),
     )
 
-    pipeline_metrics = {
+    bugfix_metrics = {
         "github_run_id": os.getenv("GITHUB_RUN_ID"),
         "issues_processed": [],
         "successful_repairs": 0,
@@ -41,7 +41,7 @@ def main():
     }
 
     issues = get_issues_from_env()
-    pipeline_metrics["issues_count"] = len(issues)
+    bugfix_metrics["issues_count"] = len(issues)
     for issue in issues:
         issue_start_time = time.monotonic()
         log_file = setup_logging(issue["number"], log_dir)
@@ -139,7 +139,7 @@ def main():
                 # context["files"]["diff_file"] = apply_changes_to_branch(context["state"]["branch"], context["files"]["fixed_files"], diff_dir=log_dir, commit_info=f"#{issue['number']}: {issue['title']}")
                 # push_changes(context["state"]["branch"])
                 # report_to_pr(context)
-                pipeline_metrics["successful_repairs"] += 1
+                bugfix_metrics["successful_repairs"] += 1
             else:
                 logging.info(
                     f"=== Repair failed after {max_attempts} attempts for issue #{issue['number']} ==="
@@ -158,11 +158,10 @@ def main():
         finally:
             issue_duration = round(time.monotonic() - issue_start_time, 4)
             context["metrics"]["script_execution_time"] = issue_duration
-            pipeline_metrics["issues_processed"].append(
+            bugfix_metrics["issues_processed"].append(
                 {
                     "issue_number": issue["number"],
                     "issue_title": issue["title"],
-                    "model": context["cfg"]["model"],
                     "repair_successful": repair_successful,
                     "attempts": current_attempt,
                     "tokens": llm.pop_nested_usage(issue["number"]),
@@ -180,15 +179,16 @@ def main():
             time.sleep(8)
 
     total_duration = time.monotonic() - script_start_time
-    pipeline_metrics["total_execution_time"] = round(total_duration, 4)
-    pipeline_metrics["llm_usage"] = llm.get_usage()
-    pipeline_file = Path(log_dir) / "pipeline_results.json"
-    with open(pipeline_file, "w") as f:
-        json.dump(pipeline_metrics, f, indent=2)
+    bugfix_metrics["total_execution_time"] = round(total_duration, 4)
+    bugfix_metrics["model"]: context["cfg"]["model"]
+    bugfix_metrics["llm_usage"] = llm.get_usage()
+    results_file = Path(log_dir) / "bugfix_results.json"
+    with open(results_file, "w") as f:
+        json.dump(bugfix_metrics, f, indent=2)
 
     logging.info(f"Pipeline complete in {total_duration:.4f} seconds")
     logging.info(
-        f"Processed {len(issues)} issues with {pipeline_metrics['successful_repairs']} successful repairs"
+        f"Processed {len(issues)} issues with {bugfix_metrics['successful_repairs']} successful repairs"
     )
 
 

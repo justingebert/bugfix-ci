@@ -37,6 +37,7 @@ def calculate_metrics(run_path):
 
     metrics = {
         "run_id": bugfix_results.get("github_run_id"),
+        "model": bugfix_results.get("model", "unknown"),
         "total_issues": num_issues,
         "successful_repairs": successful_repairs,
         "repair_success_rate": repair_success_rate,
@@ -58,6 +59,7 @@ def print_metrics(metrics):
 
     print("\n===== Pipeline Run Metrics =====\n")
     print(f"Run ID: {metrics['run_id']}")
+    print(f"Model: {metrics['model']}")
     print(f"Total Issues: {metrics['total_issues']}")
     print(f"Successful Repairs: {metrics['successful_repairs']}")
     print(f"Repair Success Rate: {metrics['repair_success_rate']:.2f}%")

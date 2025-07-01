@@ -176,7 +176,7 @@ def main():
             logging.info(f"Log file: {log_file}")
 
             # sleep for Xsec (to avoid hitting API rate limits for free tier)
-            time.sleep(8)
+            time.sleep(12)
 
     total_duration = time.monotonic() - script_start_time
     bugfix_metrics["total_execution_time"] = round(total_duration, 4)

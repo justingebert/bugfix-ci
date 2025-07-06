@@ -79,7 +79,10 @@ class LLM:
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate cost based on separate input and output token counts."""
         rates = {
+            "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30},
             "gemini-2.0-flash": {"input": 0.15, "output": 0.60},
+            "gemini-2.5-flash-lite-preview-06-17": {"input": 0.10, "output": 0.40},
+            "gemini-2.5-flash": {"input": 0.30, "output": 2.50},
         }
 
         model_rates = rates.get(self.model, {"input": 0.0005, "output": 0.0015})

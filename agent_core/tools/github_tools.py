@@ -38,7 +38,7 @@ def get_issues(limit, cfg) -> list[Issue.Issue]:
 def report_failure(issue_number, message, label):
     repo = get_repo()
     issue = repo.get_issue(int(issue_number))
-    issue.create_comment(f"❌  Fix failed: {message}")
+    issue.create_comment(f"**APR report:** Fix failed: {message}")
     issue.add_to_labels(label)
 
 def add_issue_label(issue_number, label):

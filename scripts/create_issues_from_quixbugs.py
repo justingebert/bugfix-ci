@@ -32,15 +32,7 @@ def main() -> None:
         body = textwrap.dedent(
             f"""
             There is a bug in **`{bug_id}`**.
-
-            * **File**: `{py_file.as_posix()}`
             """
-
-            #FOR LATER to compare
-        #                 * **Reproduce locally**:
-            #               ```bash
-            #               pytest {py_file.as_posix()} -q
-            #               ```
 
         ).strip()
 

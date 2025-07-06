@@ -11,5 +11,4 @@ services:
             - ./.docker-env-issues
         environment:
             CONFIG_FILE: /workspace/workspace/config/bugfix.yml
-            ENV: dev-deployed
 #        entrypoint: ["sh", "-c", "tail -f /dev/null"] #for attaching and debugging

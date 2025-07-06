@@ -29,8 +29,8 @@ def main():
 
     cfg = load_cfg(get_local_workspace())
     llm = LLM(
-        provider=cfg.get("LLM_PROVIDER", "google"),
-        model=cfg.get("LLM_MODEL", "gemini-2.0-flash"),
+        provider=cfg.get("provider", "google"),
+        model=cfg.get("model", "gemini-2.0-flash"),
     )
 
     bugfix_metrics = {

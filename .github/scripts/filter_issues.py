@@ -10,19 +10,32 @@ event_path = os.environ.get("GITHUB_EVENT_PATH", "")
 with open(event_path) as f:
     event = json.load(f)
 
-#TODO: add default config file
+default_config = {
+    "to_fix_label": "bug_v01",
+    "submitted_fix_label": "bug_v01_submitted_fix",
+    "failed_fix_label": "bug-fix-failed",
+    "workdir": "",
+    "branch_prefix": "bugfix_v01_",
+    "main_branch": "main",
+    "max_issues": 10,
+    "max_attempts": 3,
+    "provider": "google",
+    "model": "gemini-2.0-flash",
+}
+
+config = {}
 config_path = "config/bugfix.yml"
 if os.path.exists(config_path):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 else:
-    print("Config file not found")
-    sys.exit(1)
+    print("no custom config file found")
+    config = default_config
 
-to_fix_label = config.get("to_fix_label", "bug_v01")
-submitted_fix_label = config.get("submitted_fix_label", "bug_v01_submitted_fix")
-failed_fix_label = config.get("failed_fix_label", "bug-fix-failed")
-max_issues = config.get("max_issues", 5)
+to_fix_label = config["to_fix_label"]
+submitted_fix_label = config["submitted_fix_label"]
+failed_fix_label = config["failed_fix_label"]
+max_issues = config["max_issues"]
 
 github_token = os.environ.get("GITHUB_TOKEN")
 g = Github(github_token)
@@ -82,6 +95,11 @@ elif event_name == "issues":
 
 
 elif event_name == "issue_comment" and event.get("action") == "created":
+    comment_body = event.get("comment", {}).get("body", "")
+    if comment_body.startswith("**APR report:**"):
+        print("Failure comment from APR, skipping.")
+        sys.exit(0)
+
     issue_data = event.get("issue", {})
     issue_number = issue_data.get("number")
     issue = repo.get_issue(issue_number)
@@ -93,12 +111,12 @@ elif event_name == "issue_comment" and event.get("action") == "created":
         issues_to_process.append({
             "number": issue.number,
             "title": issue.title,
-            "body": issue.body,
+            "body": issue.body + "\n\n" + comment_body,
             "labels": [{"name": label.name} for label in issue.labels],
             "url": issue.html_url
         })
 
-if issues_to_process == []:
+if not issues_to_process:
     print("No issues to process")
     sys.exit(0)
 

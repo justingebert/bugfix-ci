@@ -2,7 +2,7 @@ def sqrt(x, epsilon):
     assert x >= 0, "x must be non-negative"
     assert epsilon > 0, "epsilon must be positive"
     approx = 1.0
-    while abs(approx * approx - x) >= epsilon:
+    while abs(approx * approx - x) >= epsilon * epsilon:
         approx = 0.5 * (approx + x / approx)
     return approx
 

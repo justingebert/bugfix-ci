@@ -7,7 +7,6 @@ from apr_core.stages.stage import Stage, ResultStatus
 from apr_core.tools.file_tools import load_source_files
 from apr_core.tools.local_repo_tools import get_local_workspace, get_repo_tree
 
-TITLE_RE = re.compile(r"Problem in (\S+)")
 
 ##TODO continue here with adding source file dict for attempt retry
 class Localize(Stage):

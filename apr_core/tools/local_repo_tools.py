@@ -19,16 +19,21 @@ def checkout_branch(name, prefix="" ):
 
         repo_path = get_local_workspace()
         repo = git.Repo(repo_path)
+        repo.remotes.origin.fetch()
 
-        existing_branches = [b.name for b in repo.branches]
+        if branch_name in repo.heads:
+            logging.info(f"Branch '{branch_name}' already exists locally. Checking it out.")
+            repo.heads[branch_name].checkout()
+            return branch_name
 
-        if branch_name in existing_branches:
-            logging.info(f"Branch {branch_name} already exists, checking it out")
-            repo.git.checkout(branch_name)
-        else:
-            logging.info(f"Creating new branch {branch_name}")
-            repo.git.checkout("-b", branch_name)
+        remote_ref_name = f"origin/{branch_name}"
+        if any(ref.name == remote_ref_name for ref in repo.remotes.origin.refs):
+            logging.info(f"Branch '{branch_name}' exists on remote. Creating and tracking local branch.")
+            repo.git.checkout('--track', f'origin/{branch_name}')
+            return branch_name
 
+        logging.info(f"Branch '{branch_name}' not found. Creating new branch.")
+        repo.git.checkout('-b', branch_name)
         return branch_name
     except Exception as e:
         logging.error(f"Error preparing branch: {str(e)}")

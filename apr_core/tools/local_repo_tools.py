@@ -121,7 +121,7 @@ def reset_files(files: Optional[Iterable[str]] = None, branch: str = None) -> bo
         if branch:
             repo.git.checkout(branch)
             logging.info("Successfully reset to main branch")
-            
+
     except git.GitCommandError as e:
         raise RuntimeError(f"Git error resetting to main branch: {e}")
     except Exception as e:
@@ -178,6 +178,8 @@ def apply_changes_to_branch(branch_name: str, fixed_files: list[str], diff_dir=N
 
             logging.info(f"Generated diff saved to {diff_file}")
             return str(diff_file)
+
+        return None
 
 
     except git.GitCommandError as e:

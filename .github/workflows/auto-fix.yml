@@ -56,6 +56,8 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all branches
 
       #TODO remove this step when the agent is public
 #      - name: Log in to GitHub Container Registry

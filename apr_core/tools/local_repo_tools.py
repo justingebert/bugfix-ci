@@ -165,19 +165,19 @@ def apply_changes_to_branch(branch_name: str, fixed_files: list[str], diff_dir=N
             logging.warning("No changes detected in staged files")
             return None
 
+        staged_files = repo.git.diff("--name-only", "--staged").splitlines()
+        commit_msg = f"Fix issue {commit_info}"
+        repo.git.commit("-m", commit_msg)
+        logging.info(f"{len(staged_files)} files with changes committed to branch {branch_name}")
+
+
         if diff_dir:
             diff_file = Path(str(diff_dir)) / f"issue_{commit_info}_diff.patch"
             with open(diff_file, 'w') as f:
                 f.write(diff)
 
             logging.info(f"Generated diff saved to {diff_file}")
-
-        staged_files = repo.git.diff("--name-only", "--staged").splitlines()
-        commit_msg = f"Fix issue {commit_info}"
-        repo.git.commit("-m", commit_msg)
-        logging.info(f"{len(staged_files)} files with changes committed to branch {branch_name}")
-
-        return str(diff_file)
+            return str(diff_file)
 
 
     except git.GitCommandError as e:

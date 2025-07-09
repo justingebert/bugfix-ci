@@ -65,4 +65,5 @@ class Stage:
             return context
             
         except Exception as e:
-            raise RuntimeError(f"!! Stage {self.name} failed: {e}")
+            logging.error(f"!! Stage '{self.name}' failed.", exc_info=True)
+            raise

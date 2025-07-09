@@ -70,7 +70,7 @@ jobs:
 
       - name: Run APR
         env:
-          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN:   ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}

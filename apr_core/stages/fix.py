@@ -1,18 +1,15 @@
-import os
 import pathlib
 import logging
 import re
 from typing import Dict, List, Tuple
 
-from agent_core.stage import Stage, ResultStatus
-from google import genai
-from google.genai import types
-from agent_core.tools.file_tools import clean_code_from_llm_response, load_source_files
+from apr_core.stages.stage import Stage, ResultStatus
+from apr_core.tools.file_tools import clean_code_from_llm_response, load_source_files
 
 
 class Fix(Stage):
     name = "fix"
-    
+
     FILE_DELIMITER_PATTERN = r'^=== File: (.+?) ===$'
 
     def run(self, context):
@@ -28,12 +25,13 @@ class Fix(Stage):
         system_instruction = "You are part of an automated bug-fixing system. Please return the complete, corrected raw source files for each file that needs changes, never use any markdown formatting. Follow the exact format requested."
         prompt = self._build_prompt(files_content, context.get("previous_attempt_feedback", ""))
         raw_response, tokens = self.llm.generate(prompt, system_instruction)
-        
+
         fixed_files = self._parse_and_write_files(raw_response, files_content, source_files)
         fixed_files_content = load_source_files(fixed_files)
         context["files"]["fixed_files"] = fixed_files
         logging.info(f"[{self.name}] Successfully edited {len(fixed_files)} files")
-        self.set_result(ResultStatus.SUCCESS, "Successfully fixed files", {"fixed_files": fixed_files, "files_content": fixed_files_content, "tokens": tokens})
+        self.set_result(ResultStatus.SUCCESS, "Successfully fixed files",
+                        {"fixed_files": fixed_files, "files_content": fixed_files_content, "tokens": tokens})
 
         return context
 
@@ -80,7 +78,6 @@ Format your response as:
 """
         return base_prompt
 
-
     def _parse_llm_response(self, raw_response: str) -> List[Tuple[str, str]]:
         """Parse LLM response and extract file changes as (filepath, content) tuples."""
         file_changes = []
@@ -116,27 +113,28 @@ Format your response as:
     def _write_file_changes(self, file_changes: List[Tuple[str, str]], files_content: Dict[str, str]) -> List[str]:
         """Write the parsed file changes to disk and return list of modified files."""
         fixed_files = []
-        
+
         for file_path, new_content in file_changes:
             try:
                 cleaned_code = clean_code_from_llm_response(new_content)
-                
+
                 path_obj = pathlib.Path(file_path)
                 path_obj.write_text(cleaned_code)
                 fixed_files.append(str(file_path))
                 logging.info(f"[{self.name}] Updated file: {file_path}")
             except Exception as e:
                 logging.error(f"[{self.name}] Error writing to file {file_path}: {e}")
-        
+
         return fixed_files
 
-    def _parse_and_write_files(self, raw_response: str, files_content: Dict[str, str], source_files: List[str]) -> List[str]:
+    def _parse_and_write_files(self, raw_response: str, files_content: Dict[str, str], source_files: List[str]) -> List[
+        str]:
         """Parse LLM response and write changes to files."""
         file_changes = self._parse_llm_response(raw_response)
-        
+
         if not file_changes:
             logging.warning(f"[{self.name}] No files were parsed from LLM response")
             logging.debug(f"[{self.name}] Raw response: {raw_response[:500]}...")
             return []
-        
+
         return self._write_file_changes(file_changes, files_content)

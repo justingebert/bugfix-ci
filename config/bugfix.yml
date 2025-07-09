@@ -1,12 +1,12 @@
 to_fix_label: "bug_v01"
-submitted_fix_label: "bug_v01_submitted_fix"
-failed_fix_label: "bug-fix-failed"
+submitted_fix_label: "bug_v01_fix_submitted"
+failed_fix_label: "bug_v01_fix_failed"
 workdir: "quixbugs/python_programs"
 test_cmd: "pytest"
 branch_prefix: "bugfix_v01_"
 main_branch: "main"
-max_issues: 40
-max_attempts: 3
+max_issues: 3
+max_attempts: 1
 provider: "google"
-model: "gemini-2.5-flash-lite-preview-06-17"
+model: "gemini-2.0-flash"
 # max_duration: 120

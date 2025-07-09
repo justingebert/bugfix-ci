@@ -1,6 +1,6 @@
 services:
     agent:
-        image: bugfix-ci:dev
+        image: apr_core:dev
         build:
             context: ./
             dockerfile: Dockerfile

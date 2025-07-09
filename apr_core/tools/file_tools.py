@@ -3,7 +3,6 @@ import pathlib
 import re
 from typing import List
 
-
 def clean_code_from_llm_response(response_text):
     """Clean markdown formatting from LLM response."""
     # extract code from markdown code blocks
@@ -17,12 +16,8 @@ def clean_code_from_llm_response(response_text):
     cleaned = re.sub(r'```(?:python)?\s*', '', response_text)
     cleaned = re.sub(r'```\s*', '', cleaned)
 
-    # If the cleaned text looks valid, use it
-    if cleaned.strip() and 'def ' in cleaned:
-        return cleaned.strip()
-
-    # As a last resort, use the original response
-    return response_text.strip()
+    # If the cleaned text looks valid, use it:
+    return cleaned.strip()
 
 
 def load_source_files(source_files: List[str]) -> dict[str, str]:

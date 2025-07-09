@@ -12,9 +12,9 @@ def create_log_dir():
 
     return log_dir
 
-def setup_logging(issue_number, log_dir):
+def setup_logging(name, log_dir):
     """Configure logging to write to both console and file"""
-    log_file = log_dir / f"issue_{issue_number}.log"
+    log_file = log_dir / f"{name}.log"
 
     # Reset handlers (in case this function is called multiple times)
     root_logger = logging.getLogger()

@@ -242,11 +242,11 @@ def main():
     load_dotenv()
 
     token = os.environ.get("GITHUB_TOKEN")
-    repo = os.environ.get("GITHUB_REPO")
+    repo = os.environ.get("GITHUB_REPOSITORY")
 
 
     if not token or not repo:
-        print("Error: GITHUB_TOKEN and GITHUB_REPO environment variables must be set")
+        print("Error: GITHUB_TOKEN and GITHUB_REPOSITORY environment variables must be set")
         print(f"Current repo value: {repo}")
         return
     

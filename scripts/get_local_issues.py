@@ -27,9 +27,9 @@ def get_filtered_issues():
         print("GITHUB_TOKEN not found in environment")
         sys.exit(1)
 
-    repo_name = os.environ.get("GITHUB_REPO")
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
     if not repo_name:
-        print("GITHUB_REPO not found in environment")
+        print("GITHUB_REPOSITORY not found in environment")
         sys.exit(1)
 
     g = Github(github_token)

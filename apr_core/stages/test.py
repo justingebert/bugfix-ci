@@ -2,8 +2,8 @@ from pathlib import Path
 import subprocess
 import logging
 
-from agent_core.stage import Stage, ResultStatus
-from agent_core.util.util import get_local_workspace
+from apr_core.stages.stage import Stage, ResultStatus
+from apr_core.util.util import get_local_workspace
 
 
 class Test(Stage):
@@ -14,7 +14,7 @@ class Test(Stage):
         
         fixed_files = context.get("files", {}).get("fixed_files", [])
 
-        test_cmd = context.get("cfg", {}).get("test_cmd")
+        test_cmd = context.get("config", {}).get("test_cmd")
         if not test_cmd:
             logging.info(f"[{self.name}] No test_cmd provided in config. Skipping tests.")
             self.set_result(ResultStatus.SKIPPED, "No test_cmd in config.")
@@ -65,7 +65,7 @@ class Test(Stage):
 
         # For QuixBugs: look for specific test file
         test_file = f"test_{file_name}.py"
-        test_dir = context.get("cfg", {}).get("workdir", ".").replace("python_programs", "python_testcases")
+        test_dir = context.get("config", {}).get("workdir", ".").replace("python_programs", "python_testcases")
         test_path = Path(get_local_workspace()) / test_dir / test_file
 
         logging.info(f"[{self.name}] Looking for specific test: {test_path}")

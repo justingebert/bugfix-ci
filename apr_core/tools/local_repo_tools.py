@@ -1,20 +1,21 @@
-from pathlib import Path
-import subprocess
-from typing import Optional, Iterable
 import logging
 import os
+import subprocess
+from pathlib import Path
+from typing import Optional, Iterable
+
 import git
 
-from agent_core.util.util import get_local_workspace
+from apr_core.util.util import get_local_workspace
 
 
-def checkout_branch(name, branch_prefix):
+def checkout_branch(name, prefix="" ):
     """
     Prepare a branch for fixing a specific issue.
     Creates a new branch if it doesn't exist, or checks out existing branch.
     """
     try:
-        branch_name = f"{branch_prefix}{name}"
+        branch_name = f"{prefix}{name}"
 
         repo_path = get_local_workspace()
         repo = git.Repo(repo_path)
@@ -55,22 +56,11 @@ def get_repo_tree(root_path, ignore_dirs=None):
 
     return sorted(file_paths)
 
-def print_dir_tree(paths):
-    """Prints the directory tree for the given paths, or defaults."""
-    logging.info("\n== File tree ==")
-
-    for p in paths:
-        logging.info(f"\n*** {p} ***")
-        if subprocess.call(["sh", "-c", "command -v tree >/dev/null"]) == 0:
-            subprocess.run(["tree", "-L", "2", str(p)], check=False)
-        else:
-            logging.info(f"[warn] 'tree' command not found. Cannot print directory tree for {p}.")
-
-def find_file(name: str, exts: Iterable[str] = (".py",), root: Optional[Path] = None) -> Optional[Path]:
+def find_file(name: str, extension: Iterable[str] = (".py",), root: Optional[Path] = None) -> Optional[Path]:
     if root is None:
         root = Path(get_local_workspace())
 
-    logging.info(f"Finding file: name={name}, exts={exts}")
+    logging.info(f"Finding file: name={name}, extension={extension}")
     logging.info(f"Search root: {root} (absolute: {root.absolute()})")
     logging.info(f"Root exists: {root.exists()}")
 
@@ -83,7 +73,7 @@ def find_file(name: str, exts: Iterable[str] = (".py",), root: Optional[Path] = 
                 break
 
 
-    target_names = {name} | {f"{name}{ext}" for ext in exts}
+    target_names = {name} | {f"{name}{ext}" for ext in extension}
     logging.info(f"Looking for any of: {target_names}")
 
     files_found = []
@@ -137,7 +127,7 @@ def reset_files(files: Optional[Iterable[str]] = None, branch: str = None) -> bo
     except Exception as e:
         raise RuntimeError(f"Error resetting to main branch: {str(e)}")
 
-#TODO get repo stucture with files as keys and functions/classes as values
+#TODO get repo structure with files as keys and functions/classes as values
 def get_repo_structure(repo_path: Optional[str] = None) -> dict:
     """
     Get the structure of the repository.

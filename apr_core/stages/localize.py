@@ -3,9 +3,9 @@ import re
 from pathlib import Path
 import logging
 
-from agent_core.stage import Stage, ResultStatus
-from agent_core.tools.file_tools import load_source_files
-from agent_core.tools.local_repo_tools import find_file, get_local_workspace, get_repo_tree
+from apr_core.stages.stage import Stage, ResultStatus
+from apr_core.tools.file_tools import load_source_files
+from apr_core.tools.local_repo_tools import get_local_workspace, get_repo_tree
 
 TITLE_RE = re.compile(r"Problem in (\S+)")
 
@@ -32,7 +32,7 @@ class Localize(Stage):
 
     def _find_files_with_llm(self, context):
         """Use LLM model to identify relevant files for the issue."""
-        workdir = context.get("cfg").get("workdir", "")
+        workdir = context.get("config").get("workdir", "")
         repo_path = Path(get_local_workspace())
         search_path = repo_path / workdir if workdir else repo_path
 

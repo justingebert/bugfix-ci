@@ -1,8 +1,4 @@
-# .github/scripts/filter_issues.py
-import json
-import os
-import sys
-import yaml
+import json, os, sys, yaml
 from github import Github
 
 event_name = os.environ.get("GITHUB_EVENT_NAME", "")
@@ -10,10 +6,10 @@ event_path = os.environ.get("GITHUB_EVENT_PATH", "")
 with open(event_path) as f:
     event = json.load(f)
 
-default_config = {
+config = {
     "to_fix_label": "bug_v01",
-    "submitted_fix_label": "bug_v01_submitted_fix",
-    "failed_fix_label": "bug-fix-failed",
+    "submitted_fix_label": "bug_v01_fix_submitted",
+    "failed_fix_label": "bug_v01_fix_failed",
     "workdir": "",
     "branch_prefix": "bugfix_v01_",
     "main_branch": "main",
@@ -23,97 +19,72 @@ default_config = {
     "model": "gemini-2.0-flash",
 }
 
-config = {}
-config_path = "config/bugfix.yml"
-if os.path.exists(config_path):
-    with open(config_path, "r") as f:
+custom_config_path = "config/bugfix.yml"
+if os.path.exists(custom_config_path):
+    with open(custom_config_path, "r") as f:
         config = yaml.safe_load(f)
 else:
-    print("no custom config file found")
-    config = default_config
+    print("no custom config file found falling back to default")
 
-to_fix_label = config["to_fix_label"]
-submitted_fix_label = config["submitted_fix_label"]
-failed_fix_label = config["failed_fix_label"]
-max_issues = config["max_issues"]
-
-github_token = os.environ.get("GITHUB_TOKEN")
-g = Github(github_token)
-repo = g.get_repo(os.environ.get("GITHUB_REPOSITORY"))
+github = Github(os.environ.get("GITHUB_TOKEN"))
+repo = github.get_repo(os.environ.get("GITHUB_REPOSITORY"))
 
 issues_to_process = []
 
-if event_name == "workflow_dispatch":
-    issues = repo.get_issues(state="open", labels=[to_fix_label], sort="created", direction="desc")
+if event_name == "workflow_dispatch" or event_name == "cron":
+    issues = repo.get_issues(state="open", labels=[config["to_fix_label"]], sort="created", direction="desc")
     count = 0
     for issue in issues:
-        # Skip issues that have been processed and ahve the submitted fix label or failed fix label
-        if submitted_fix_label in [label.name for label in issue.labels]:
-            continue
-
-        if failed_fix_label in [label.name for label in issue.labels]:
+        issue_labels = [label.name for label in issue.labels]
+        # Skip issues that have been processed already
+        if config["submitted_fix_label"] in issue_labels or config["failed_fix_label"] in issue_labels:
             continue
 
         issues_to_process.append({
             "number": issue.number,
             "title": issue.title,
             "body": issue.body,
-            "labels": [{"name": label.name} for label in issue.labels],
+            "labels": issue_labels,
         })
+
         count += 1
-        if count >= max_issues:
+
+        if count >= config["max_issues"]:
             break
 
 elif event_name == "issues":
     action = event.get("action", "")
-    issue_data = event.get("issue", {})
-    issue_number = issue_data.get("number")
-    issue_labels = [label.get("name") for label in issue_data.get("labels", [])]
+    issue = event.get("issue", {})
+    issue_labels = [label.get("name") for label in issue.get("labels", [])]
 
-    if submitted_fix_label in issue_labels or failed_fix_label in issue_labels:
+    if config["submitted_fix_label"] in issue_labels or config["failed_fix_label"] in issue_labels:
         sys.exit(0)
 
-    # Process if issue has to_fix_label
-    if to_fix_label in issue_labels:
-        issue = repo.get_issue(issue_number)
+    if config["to_fix_label"] in issue_labels:
         issues_to_process.append({
-            "number": issue.number,
-            "title": issue.title,
-            "body": issue.body,
-            "labels": [{"name": label.name} for label in issue.labels],
-            "url": issue.html_url
+            "number": issue["number"],
+            "title": issue["title"],
+            "body": issue["body"],
+            "labels": issue_labels,
         })
-    # elif failed_fix_label in issue_labels and action == "edited":
-    #     issue = repo.get_issue(issue_number)
-    #     issues_to_process.append({
-    #         "number": issue.number,
-    #         "title": issue.title,
-    #         "body": issue.body,
-    #         "labels": [{"name": label.name} for label in issue.labels],
-    #         "url": issue.html_url
-    #     })
-
 
 elif event_name == "issue_comment" and event.get("action") == "created":
     comment_body = event.get("comment", {}).get("body", "")
+
     if comment_body.startswith("**APR report:**"):
         print("Failure comment from APR, skipping.")
         sys.exit(0)
 
-    issue_data = event.get("issue", {})
-    issue_number = issue_data.get("number")
-    issue = repo.get_issue(issue_number)
+    issue = event.get("issue", {})
 
-    label_names = [label.name for label in issue.labels]
+    issue_labels = [label.get("name") for label in issue.get("labels", [])]
 
-    # If it has failed_fix_label but not submitted_fix_label, process it
-    if failed_fix_label in label_names and submitted_fix_label not in label_names:
+    if config["failed_fix_label"] in issue_labels and config["submitted_fix_label"] not in issue_labels:
         issues_to_process.append({
-            "number": issue.number,
-            "title": issue.title,
-            "body": issue.body + "\n\n" + comment_body,
-            "labels": [{"name": label.name} for label in issue.labels],
-            "url": issue.html_url
+            "number": issue["number"],
+            "title": issue["title"],
+            "body": issue["body"],
+            "labels": issue_labels,
         })
 
 if not issues_to_process:
@@ -122,5 +93,5 @@ if not issues_to_process:
 
 issues_json = json.dumps(issues_to_process)
 print(issues_json)
-with open(os.environ.get("GITHUB_OUTPUT", "/dev/null"), "a") as f:
+with open(os.environ.get("GITHUB_OUTPUT"), "a") as f:
     f.write(f"issues<<EOF\n{issues_json}\nEOF\n")

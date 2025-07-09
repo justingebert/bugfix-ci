@@ -1,5 +1,5 @@
-import time
 import logging
+import time
 from enum import Enum
 from typing import Optional, Any
 
@@ -65,5 +65,4 @@ class Stage:
             return context
             
         except Exception as e:
-            stage_duration = time.monotonic() - stage_start_time
-            raise RuntimeError(f"!! Stage {self.name} failed after {stage_duration:.4f} seconds: {e}")
+            raise RuntimeError(f"!! Stage {self.name} failed: {e}")

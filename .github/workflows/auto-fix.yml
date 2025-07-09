@@ -1,14 +1,12 @@
-name: BugFix Agent
+name: Auto Bugfix CI
 on:
   workflow_dispatch: {}
-#  pull_request:
-#    types: [ opened, edited ]
+  # schedule:
+  #   - cron: "30 3 * * *"
   issues:
     types: [ opened, labeled ]
   issue_comment:
     types: [ created, edited ]
-  # schedule:
-  #   - cron: "30 3 * * *"
 
 jobs:
   gate:
@@ -33,7 +31,7 @@ jobs:
       - name: Filter issues based on config
         id: filter-issues
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
@@ -60,27 +58,27 @@ jobs:
       - uses: actions/checkout@v4
 
       #TODO remove this step when the agent is public
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Log in to GitHub Container Registry
+#        uses: docker/login-action@v2
+#        with:
+#          registry: ghcr.io
+#          username: ${{ github.actor }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest image
+      - name: Pull latest APR image
         run: docker pull ghcr.io/justingebert/bugfix-ci:latest
 
-      - name: Run agent
+      - name: Run APR
         env:
           GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           FILTERED_ISSUES: ${{ needs.gate.outputs.filtered-issues }}
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/workspace" \
-            -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_REPO -e GOOGLE_API_KEY -e FILTERED_ISSUES \
+            -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_REPOSITORY -e LLM_API_KEY -e FILTERED_ISSUES \
             ghcr.io/justingebert/bugfix-ci:latest
 
       - name: Upload logs and metrics

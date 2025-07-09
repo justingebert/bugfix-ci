@@ -8,7 +8,8 @@ from pathlib import Path
 from apr_core.llm.llm import LLM
 from apr_core.llm.prompts import generate_feedback
 from apr_core.stages import Build, Fix, Localize, Test
-from apr_core.tools.local_repo_tools import checkout_branch, reset_files
+from apr_core.tools.github_tools import report_to_pr, report_failure
+from apr_core.tools.local_repo_tools import checkout_branch, reset_files, apply_changes_to_branch, push_changes
 from apr_core.util.logger import setup_logging, create_log_dir
 from apr_core.util.util import load_config, get_issues_from_env, get_local_workspace
 
@@ -105,16 +106,16 @@ def main():
                         reset_files(context["files"]["fixed_files"])
 
             if context['state']['current_attempt']:
-                # context["files"]["diff_file"] = apply_changes_to_branch(context["state"]["branch"], context["files"]["fixed_files"], diff_dir=log_dir, commit_info=f"#{issue['number']}: {issue['title']}")
-                # push_changes(context["state"]["branch"])
-                # report_to_pr(context)
+                context["files"]["diff_file"] = apply_changes_to_branch(context["state"]["branch"], context["files"]["fixed_files"], diff_dir=log_dir, commit_info=f"#{issue['number']}: {issue['title']}")
+                push_changes(context["state"]["branch"])
+                report_to_pr(context)
                 bugfix_metrics["successful_repairs"] += 1
             else:
                 logging.info( f"=== Repair failed after {max_attempts} attempts for issue #{issue['number']} ===")
-                # report_failure(issue["number"], "Repair failed after max attempts", config.get("failed_fix_label"))
+                report_failure(issue["number"], "Repair failed after max attempts", config.get("failed_fix_label"))
 
             # for local usage (not in GitHub Actions)
-            reset_files(context["files"]["fixed_files"], branch=context["config"]["main_branch"])
+            #reset_files(context["files"]["fixed_files"], branch=context["config"]["main_branch"])
 
         except Exception as e:
             logging.error(f"!! Error processing issue #{issue['number']}: {e}", exc_info=True)

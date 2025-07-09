@@ -106,7 +106,7 @@ def main():
                         reset_files(context["files"]["fixed_files"])
 
             if context['state']['current_attempt']:
-                context["files"]["diff_file"] = apply_changes_to_branch(context["state"]["branch"], context["files"]["fixed_files"], diff_dir=log_dir, commit_info=f"#{issue['number']}: {issue['title']}")
+                context["files"]["diff_file"] = apply_changes_to_branch(context["state"]["branch"], context["files"]["fixed_files"], commit_info=f"#{issue['number']}: {issue['title']}")
                 push_changes(context["state"]["branch"])
                 report_to_pr(context)
                 bugfix_metrics["successful_repairs"] += 1

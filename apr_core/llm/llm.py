@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any
 
@@ -17,16 +18,16 @@ class LLM:
             if not os.getenv("LLM_API_KEY"):
                 raise ValueError("LLM_API_KEY environment variable is not set.")
             self.client = genai.Client(api_key=os.getenv("LLM_API_KEY"))
-        # elif self.provider == "openai":
-        #     import openai
-        #     if not os.getenv("OPENAI_API_KEY"):
-        #         raise ValueError("OPENAI_API_KEY environment variable is not set.")
-        #     self.client = openai.Client(api_key=os.getenv("OPENAI_API_KEY"))
-        # elif self.provider == "anthropic":
-        #     from anthropic import Anthropic
-        #     if not os.getenv("ANTHROPIC_API_KEY"):
-        #         raise ValueError("ANTHROPIC_API_KEY environment variable is not set.")
-        #     self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        elif self.provider == "openai":
+            import openai
+            if not os.getenv("LLM_API_KEY"):
+                raise ValueError("LLM_API_KEY environment variable is not set.")
+            self.client = openai.Client(api_key=os.getenv("LLM_API_KEY"))
+        elif self.provider == "anthropic":
+            from anthropic import Anthropic
+            if not os.getenv("LLM_API_KEY"):
+                raise ValueError("LLM_API_KEY environment variable is not set.")
+            self.client = Anthropic(api_key=os.getenv("LLM_API_KEY"))
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
 
@@ -58,30 +59,30 @@ class LLM:
                     input_tokens += self._estimate_tokens(system_instruction)
                 output_tokens = self._estimate_tokens(response_text)
 
-            # elif self.provider == "openai":
-            #     response = self.client.chat.completions.create(
-            #         model=self.model,
-            #         messages=[{"role": "system", "content": system_instruction},
-            #                   {"role": "user", "content": prompt}],
-            #         max_tokens=1500
-            #     )
-            #
-            #     response_text = response.choices[0].message.content
-            #
-            #     input_tokens = response.usage.prompt_tokens
-            #     output_tokens = response.usage.completion_tokens
+            elif self.provider == "openai":
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "system", "content": system_instruction},
+                              {"role": "user", "content": prompt}],
+                    max_tokens=1500
+                )
 
-            # elif self.provider == "anthropic":
-            #     response = self.client.chat.completions.create(
-            #         model=self.model,
-            #         messages=[{"role": "system", "content": system_instruction},
-            #                   {"role": "user", "content": prompt}],
-            #         max_tokens=1500
-            #     )
-            #
-            #     response_text = response.choices[0].message.content
-            #     input_tokens =
-            #     output_tokens =
+                response_text = response.choices[0].message.content
+
+                input_tokens = response.usage.prompt_tokens
+                output_tokens = response.usage.completion_tokens
+
+            elif self.provider == "anthropic":
+                response = self.client.messages.create(
+                    model=self.model,
+                    system=system_instruction,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=1500
+                )
+
+                response_text = response.content[0].text
+                input_tokens = response.usage.input_tokens
+                output_tokens = response.usage.output_tokens
 
         except Exception as e:
             raise RuntimeError(f"APR error {str(e)}")
@@ -123,12 +124,17 @@ class LLM:
             "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
             "gpt-4o": {"input": 2.50, "output": 10.00},
             "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
+            "gpt-4.1-nano": {"input": 0.1, "output": 0.4},
+            "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25},
+            "claude-3-5-haiku": {"input": 0.8, "output": 4.00},
             "claude-3-7-sonnet": {"input": 3.00, "output": 15.00},
-            "claude-3-haiku": {"input": 0.25, "output": 1.25},
             "claude-sonnet-4-0": {"input": 3, "output": 15.00},
         }
 
-        model_rates = rates.get(self.model)
+        model_rates = rates.get(self.model, None)
+        if not model_rates:
+            logging.warning(f"Cost tracking not supported for this model")
+            return 0
 
         input_cost = (input_tokens / 1000000) * model_rates["input"]
         output_cost = (output_tokens / 1000000) * model_rates["output"]

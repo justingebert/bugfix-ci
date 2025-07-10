@@ -4,9 +4,8 @@ from pathlib import Path
 import logging
 
 from apr_core.stages.stage import Stage, ResultStatus
-from apr_core.tools.file_tools import load_source_files
+from apr_core.tools.file_tools import find_files
 from apr_core.tools.local_repo_tools import get_local_workspace, get_repo_tree
-
 
 ##TODO continue here with adding source file dict for attempt retry
 class Localize(Stage):
@@ -20,7 +19,7 @@ class Localize(Stage):
             raise RuntimeError(f"[{self.name}] Failed to localize Files for Issue #{context['bug']['number']}")
 
         context["files"]["source_files"] = source_files
-        context["files"]["original_source_files"] = load_source_files(source_files)
+        context["files"]["original_source_files"] = find_files(source_files)
 
         self.set_result(ResultStatus.SUCCESS,
                         f"Identified source files for issue #{context['bug']['number']}: {source_files}",
@@ -31,8 +30,8 @@ class Localize(Stage):
 
     def _find_files_with_llm(self, context):
         """Use LLM model to identify relevant files for the issue."""
-        workdir = context.get("config").get("workdir", "")
         repo_path = Path(get_local_workspace())
+        workdir = context.get("config").get("workdir", "")
         search_path = repo_path / workdir if workdir else repo_path
 
         repo_files = get_repo_tree(search_path)

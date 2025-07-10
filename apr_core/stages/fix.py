@@ -4,7 +4,7 @@ import re
 from typing import Dict, List, Tuple
 
 from apr_core.stages.stage import Stage, ResultStatus
-from apr_core.tools.file_tools import clean_code_from_llm_response, load_source_files
+from apr_core.tools.file_tools import clean_code_from_llm_response, find_files
 
 
 class Fix(Stage):
@@ -17,7 +17,7 @@ class Fix(Stage):
         if not source_files:
             raise RuntimeError(f"[{self.name}] No source files found in context for issue #{context['bug']['number']}")
 
-        files_content = load_source_files(source_files)
+        files_content = find_files(source_files)
 
         if not files_content:
             raise RuntimeError(f"[{self.name}] No readable source files found for issue #{context['bug']['number']}")
@@ -27,7 +27,7 @@ class Fix(Stage):
         raw_response, tokens = self.llm.generate(prompt, system_instruction)
 
         fixed_files = self._parse_and_write_files(raw_response, files_content, source_files)
-        fixed_files_content = load_source_files(fixed_files)
+        fixed_files_content = find_files(fixed_files)
         context["files"]["fixed_files"] = fixed_files
         logging.info(f"[{self.name}] Successfully edited {len(fixed_files)} files")
         self.set_result(ResultStatus.SUCCESS, "Successfully fixed files",

@@ -59,16 +59,12 @@ def get_filtered_issues():
 
 
 if __name__ == "__main__":
-    output_file = sys.argv[1] if len(sys.argv) > 1 else "./filtered_issues.json"
 
     env_file = "./.docker-env-issues"
 
     filtered_issues = get_filtered_issues()
 
-    with open(output_file, "w") as f:
-        json.dump(filtered_issues, f, indent=2)
-
     with open(env_file, "w") as f:
         f.write(f"FILTERED_ISSUES={json.dumps(filtered_issues)}")
 
-    print(f"Filtered {len(filtered_issues)} issues to {output_file}")
+    print(f"Filtered {len(filtered_issues)} issues to {env_file}")

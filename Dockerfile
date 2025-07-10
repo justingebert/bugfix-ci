@@ -8,4 +8,4 @@ COPY apr_core/ apr_core/
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-ENTRYPOINT ["python", "-m", "apr_core.main"]
+CMD ["python", "-m", "apr_core.main"]

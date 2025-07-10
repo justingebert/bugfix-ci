@@ -65,5 +65,5 @@ class Stage:
             return context
             
         except Exception as e:
-            logging.error(f"!! Stage '{self.name}' failed.", exc_info=True)
+            logging.error(f"!! Stage '{self.name}' failed. Error: {e}", exc_info=True)
             raise

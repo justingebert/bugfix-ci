@@ -75,6 +75,7 @@ def main():
 
             max_attempts = context["config"].get("max_attempts", 3)
 
+            #loop until repair is successful or max attempts reached
             while not context["state"]["repair_successful"] and context["state"]["current_attempt"] < max_attempts:
                 context["state"]["current_attempt"] += 1
 

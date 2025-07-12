@@ -9,5 +9,3 @@ services:
         env_file:
             -   ./.env
             - ./.docker-env-issues
-        environment:
-            CONFIG_FILE: /workspace/workspace/config/bugfix.yml

@@ -8,3 +8,4 @@ max_issues: 5
 max_attempts: 3
 provider: "google"
 model: "gemini-2.0-flash"
+sleep_after_issue: 0

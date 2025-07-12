@@ -143,8 +143,9 @@ def main():
 
             logging.info(f"Log file: {log_file}")
 
-            # sleep for Xsec (to avoid hitting API rate limits for free tier)
-            time.sleep(4)
+            # sleep for (to avoid hitting API rate limits tier)
+            if context["config"].get("sleep_after_issue") > 0:
+                time.sleep(context["config"]["sleep_after_issue"])
 
     bugfix_metrics["issues_count"] = len(issues)
     total_duration = time.monotonic() - script_start_time

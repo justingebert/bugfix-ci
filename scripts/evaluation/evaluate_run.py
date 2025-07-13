@@ -102,7 +102,7 @@ def main():
 
     # If no run_path provided, find most recent run
     if not args.run_path:
-        evaluation_dir = Path("evaluation")
+        evaluation_dir = Path("scripts/evaluation")
         run_folders = [f for f in evaluation_dir.glob("run_*") if f.is_dir()]
 
         if not run_folders:

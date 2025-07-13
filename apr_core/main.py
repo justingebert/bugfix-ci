@@ -113,7 +113,7 @@ def main():
                 bugfix_metrics["successful_repairs"] += 1
             else:
                 logging.info( f"=== Repair failed after {max_attempts} attempts for issue #{issue['number']} ===")
-                report_failure(issue["number"], "Repair failed after max attempts", config.get("failed_fix_label"))
+                report_failure(issue["number"], f"Repair failed after max attempts with model: {context['config']['model']}", config.get("failed_fix_label"))
 
             reset_files(context["files"]["fixed_files"],branch=context["config"]["main_branch"])
 

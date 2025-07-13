@@ -19,7 +19,7 @@ config = {
     "model": "gemini-2.0-flash",
 }
 
-custom_config_path = "config/bugfix.yml"
+custom_config_path = "bugfix.yml"
 if os.path.exists(custom_config_path):
     with open(custom_config_path, "r") as f:
         config = yaml.safe_load(f)

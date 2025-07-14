@@ -15,7 +15,7 @@ def report_failure(issue_number, message, label):
     repo = get_repo()
     issue = repo.get_issue(int(issue_number))
     issue.create_comment(f"**APR report:** Fix failed: {message}")
-    issue.add_to_labels(label)
+    #issue.add_to_labels(label)
 
 def add_label_to_issue(issue_number, label):
     repo = get_repo()
@@ -58,7 +58,7 @@ def report_to_pr(context):
 
         # add label to issue
         fix_submitted_label = context["config"].get("submitted_fix_label")
-        add_label_to_issue(context["bug"]["number"], fix_submitted_label)
+        #add_label_to_issue(context["bug"]["number"], fix_submitted_label)
 
     except Exception as e:
         raise RuntimeError(f"Error creating/updating PR: {str(e)}")

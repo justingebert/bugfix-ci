@@ -61,10 +61,10 @@ class LLM:
                     )
                     response_text = response.text
 
-                    input_tokens = self._estimate_tokens(prompt)
-                    if system_instruction:
-                        input_tokens += self._estimate_tokens(system_instruction)
-                    output_tokens = self._estimate_tokens(response_text)
+                    input_tokens = response.usage_metadata.get("prompt_token_count", 0)
+                    #if system_instruction:
+                        #input_tokens += self._estimate_tokens(system_instruction)
+                    output_tokens = response.usage_metadata.get("candidates_token_count", 0)
 
                 elif self.provider == "openai":
                     response = self.client.chat.completions.create(
@@ -121,11 +121,6 @@ class LLM:
 
         return response_text, tokens
 
-    @staticmethod
-    def _estimate_tokens(text: str) -> int:
-        """Estimate token count for a string."""
-        # (4 chars ≈ 1 token)
-        return len(text) // 4
 
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate cost based on separate input and output token counts. per 1M tokens"""

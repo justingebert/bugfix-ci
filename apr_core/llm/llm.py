@@ -62,9 +62,8 @@ class LLM:
                     response_text = response.text
 
                     input_tokens = response.usage_metadata.get("prompt_token_count", 0)
-                    #if system_instruction:
-                        #input_tokens += self._estimate_tokens(system_instruction)
                     output_tokens = response.usage_metadata.get("candidates_token_count", 0)
+                    output_tokens += response.usage_metadata.get("thoughts_token_count", 0)
 
                 elif self.provider == "openai":
                     response = self.client.chat.completions.create(

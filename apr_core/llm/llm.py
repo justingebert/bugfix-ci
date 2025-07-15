@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from typing import Any
 
 class LLM:
@@ -41,51 +42,63 @@ class LLM:
 
     def generate(self, prompt: str, system_instruction: str = None) -> tuple[str, Any]:
         """Generate content using the configured LLM provider."""
+
+        max_attempts = 3
+        backoff_time = 2  # seconds
+
         response_text = ""
         input_tokens = 0
         output_tokens = 0
-        try:
-            if self.provider == "google":
-                from google.genai import types
-                response = self.client.models.generate_content(
-                    model=self.model,
-                    config=types.GenerateContentConfig(system_instruction=system_instruction),
-                    contents=prompt
-                )
-                response_text = response.text
 
-                input_tokens = self._estimate_tokens(prompt)
-                if system_instruction:
-                    input_tokens += self._estimate_tokens(system_instruction)
-                output_tokens = self._estimate_tokens(response_text)
+        for attempt in range(max_attempts):
+            try:
+                if self.provider == "google":
+                    from google.genai import types
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        config=types.GenerateContentConfig(system_instruction=system_instruction),
+                        contents=prompt
+                    )
+                    response_text = response.text
 
-            elif self.provider == "openai":
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": "system", "content": system_instruction},
-                              {"role": "user", "content": prompt}],
-                    max_tokens=1500
-                )
+                    input_tokens = self._estimate_tokens(prompt)
+                    if system_instruction:
+                        input_tokens += self._estimate_tokens(system_instruction)
+                    output_tokens = self._estimate_tokens(response_text)
 
-                response_text = response.choices[0].message.content
+                elif self.provider == "openai":
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[{"role": "system", "content": system_instruction},
+                                {"role": "user", "content": prompt}],
+                        max_tokens=1500
+                    )
 
-                input_tokens = response.usage.prompt_tokens
-                output_tokens = response.usage.completion_tokens
+                    response_text = response.choices[0].message.content
 
-            elif self.provider == "anthropic":
-                response = self.client.messages.create(
-                    model=self.model,
-                    system=system_instruction,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=1500
-                )
+                    input_tokens = response.usage.prompt_tokens
+                    output_tokens = response.usage.completion_tokens
 
-                response_text = response.content[0].text
-                input_tokens = response.usage.input_tokens
-                output_tokens = response.usage.output_tokens
+                elif self.provider == "anthropic":
+                    response = self.client.messages.create(
+                        model=self.model,
+                        system=system_instruction,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=1500
+                    )
 
-        except Exception as e:
-            raise RuntimeError(f"APR error {str(e)}")
+                    response_text = response.content[0].text
+                    input_tokens = response.usage.input_tokens
+                    output_tokens = response.usage.output_tokens
+
+            except Exception as e:
+                logging.error(f"Error during LLM generation: {e}")
+                if attempt < max_attempts - 1:
+                    logging.info(f"Retrying in {backoff_time} seconds...")
+                    time.sleep(backoff_time)
+                    backoff_time *= 2
+                else:
+                    raise RuntimeError(f"Failed to generate content after {max_attempts} attempts") from e
 
         cost = self._calculate_cost(input_tokens, output_tokens)
 

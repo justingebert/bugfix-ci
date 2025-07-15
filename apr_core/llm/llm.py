@@ -35,7 +35,7 @@ class LLM:
     def _get_default_model(self):
         defaults = {
             "google": "gemini-2.0-flash",
-            "openai": "gpt-4o",
+            "openai": "gpt-4.1-mini",
             "anthropic": "claude-3-7-sonnet",
         }
         return defaults.get(self.provider)

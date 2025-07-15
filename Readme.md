@@ -16,13 +16,13 @@ _A lightweight Automated Program Repair system that **finds, patches & PRs bugs*
 
 ## Quick start
 
-1. **Add a workflow** to your repo at `.github/workflows/auto-fix.yml`:
-   - Copy the workflow file from this repository's `.github/workflows/auto-fix.yml`
+1. **Add a workflow**
+   - Copy the workflow file from this repository `.github/workflows/auto-fix.yml`
    - Copy the filter script from `.github/scripts/filter_issues.py`
 
 2. **Configure required secrets** in your repository:
    - Go to Settings > Secrets and variables > Actions
-   - Add `GOOGLE_API_KEY` or other LLM provider API key
+   - Add `LLM_API_KEY` as a repository secret
 
 3. **Enable PR creation permissions**:
    - Go to Settings > Actions > General
@@ -32,7 +32,7 @@ _A lightweight Automated Program Repair system that **finds, patches & PRs bugs*
 
 4. **Customize behavior** (optional):
    - Create a `bugfix.yml` in your repository root
-   - Override default settings (labels, max attempts, etc.)
+   - Override default settings 
 
 ## How It Works
 

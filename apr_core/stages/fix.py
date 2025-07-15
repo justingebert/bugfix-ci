@@ -31,7 +31,7 @@ class Fix(Stage):
         context["files"]["fixed_files"] = fixed_files
         logging.info(f"[{self.name}] Successfully edited {len(fixed_files)} files")
         self.set_result(ResultStatus.SUCCESS, "Successfully fixed files",
-                        {"fixed_files": fixed_files, "files_content": fixed_files_content, "tokens": tokens})
+                        {"fixed_files": fixed_files, "files_content": fixed_files_content, "tokens": tokens, "raw_response": raw_response})
 
         return context
 

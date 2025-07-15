@@ -1,19 +1,18 @@
-
 def minimum_spanning_tree(weight_by_edge):
     group_by_node = {}
     mst_edges = set()
 
     for edge in sorted(weight_by_edge, key=weight_by_edge.__getitem__):
         u, v = edge
-        if group_by_node.setdefault(u, {u}) != group_by_node.setdefault(v, {v}):
+        u_group = group_by_node.setdefault(u, {u})
+        v_group = group_by_node.setdefault(v, {v})
+        if u_group is not v_group:
             mst_edges.add(edge)
-            group_by_node[u].update(group_by_node[v])
-            for node in group_by_node[v]:
-                group_by_node[node].update(group_by_node[u])
+            union = u_group | v_group
+            for node in union:
+                group_by_node[node] = union
 
     return mst_edges
-
-
 
 
 """

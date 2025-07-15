@@ -1,5 +1,5 @@
 # APR Core 🛠️
-_A lightweight Automated Program Repair system that **finds, patches & PRs bugs** in your repository using GitHub Actions—just by adding one workflow file._
+_A lightweight Automated Program Repair system that **finds, patches & PRs bugs** in your repository using GitHub Actions by adding one workflow file._
 
 ---
 

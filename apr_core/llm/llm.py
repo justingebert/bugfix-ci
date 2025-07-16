@@ -66,13 +66,21 @@ class LLM:
                     output_tokens += response.usage_metadata.thoughts_token_count or 0
 
                 elif self.provider == "openai":
-                    response = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=[{"role": "system", "content": system_instruction},
-                                {"role": "user", "content": prompt}],
-                        max_tokens=1500
-                    )
+                    kwargs = {
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": system_instruction},
+                            {"role": "user", "content": prompt},
+                        ],
+                    }
 
+                    if self.model.startswith("o4-mini"): #reasoning models
+                        max_completion_tokens = 1500
+                        #kwargs["max_completion_tokens"] = max_completion_tokens
+                    else:
+                        kwargs["max_tokens"] = 1500
+
+                    response = self.client.chat.completions.create(**kwargs)
                     response_text = response.choices[0].message.content
 
                     input_tokens = response.usage.prompt_tokens

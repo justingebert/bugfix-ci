@@ -81,41 +81,53 @@ Format your response as:
     def _parse_llm_response(self, raw_response: str) -> List[Tuple[str, str]]:
         """Parse LLM response and extract file changes as (filepath, content) tuples."""
         file_changes = []
-        lines = raw_response.split('\n')
-        current_file = None
-        current_content = []
 
-        for line in lines:
-            # Check if this line is a file delimiter
-            match = re.match(self.FILE_DELIMITER_PATTERN, line.strip())
-            if match:
-                # Save previous file if exists
-                if current_file and current_content:
-                    content = '\n'.join(current_content).strip()
-                    if content and content != "NO CHANGES NEEDED":
-                        file_changes.append((current_file, content))
+        # Split by file delimiter, capturing the file path
+        parts = re.split(self.FILE_DELIMITER_PATTERN, raw_response, flags=re.MULTILINE)
 
-                # Start new file
-                current_file = match.group(1).strip()
-                current_content = []
-            else:
-                if current_file:
-                    current_content.append(line)
+        if len(parts) < 3:
+            return []
 
-        # Handle the last file
-        if current_file and current_content:
-            content = '\n'.join(current_content).strip()
-            if content and content != "NO CHANGES NEEDED":
-                file_changes.append((current_file, content))
+        # Process each file (skip index 0 which is content before first delimiter)
+        for i in range(1, len(parts), 2):
+            if i + 1 >= len(parts):
+                break
+
+            file_path = parts[i].strip()
+            content = parts[i + 1].strip()
+
+            # Clean up common LLM footers
+            content = self._clean_llm_footers(content)
+
+            file_changes.append((file_path, content))
 
         return file_changes
 
+    def _clean_llm_footers(self, content: str) -> str:
+        """Remove common LLM-generated footers from code content."""
+        # Patterns for various footer messages (case insensitive)
+        footer_patterns = [
+            r'\s*===?\s*(end of file).*$',
+            r'\s*===?\s*(end|done|finished).*$'
+        ]
+
+        for pattern in footer_patterns:
+            content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
+
+        return content.strip()
+
     def _write_file_changes(self, file_changes: List[Tuple[str, str]], files_content: Dict[str, str]) -> List[str]:
         """Write the parsed file changes to disk and return list of modified files."""
-        fixed_files = []
+        fixed_files: List[str] = []
 
         for file_path, new_content in file_changes:
             try:
+                # Check if LLM indicated no changes needed (case insensitive)
+                if re.match(r'^\s*no changes? needed?\s*$', new_content, re.IGNORECASE):
+                    # Use original file
+                    logging.info(f"[{self.name}] Preserved original file: {file_path}")
+                    continue
+
                 cleaned_code = clean_code_from_llm_response(new_content)
 
                 path_obj = pathlib.Path(file_path)

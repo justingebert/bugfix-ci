@@ -142,8 +142,8 @@ class LLM:
             "gpt-4.1": {"input": 2.00, "output": 8.00},
             "o4-mini": {"input": 1.10, "output": 4.40},
             "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25},
-            "claude-3-5-haiku": {"input": 0.80, "output": 4.00},
-            "claude-3-7-sonnet": {"input": 3.00, "output": 15.00},
+            "claude-3-5-haiku-latest": {"input": 0.80, "output": 4.00},
+            "claude-3-7-sonnet-latest": {"input": 3.00, "output": 15.00},
             "claude-sonnet-4-0": {"input": 3.00, "output": 15.00},
         }
 

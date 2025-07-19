@@ -36,14 +36,14 @@ class LLM:
         defaults = {
             "google": "gemini-2.0-flash",
             "openai": "gpt-4.1-mini",
-            "anthropic": "claude-3-7-sonnet",
+            "anthropic": "claude-3-7-sonnet-latest",
         }
         return defaults.get(self.provider)
 
     def generate(self, prompt: str, system_instruction: str = None) -> tuple[str, Any]:
         """Generate content using the configured LLM provider."""
 
-        max_attempts = 3
+        max_attempts = 4
         backoff_time = 2  # seconds
 
         response_text = ""
@@ -95,8 +95,8 @@ class LLM:
                     )
 
                     response_text = response.content[0].text
-                    input_tokens = response.usage.input_tokens
-                    output_tokens = response.usage.output_tokens
+                    input_tokens += response.usage.input_tokens
+                    output_tokens += response.usage.output_tokens
 
             except Exception as e:
                 logging.error(f"Error during LLM generation: {e}")

@@ -61,8 +61,8 @@ class LLM:
                     )
                     response_text = response.text
 
-                    input_tokens = response.usage_metadata.prompt_token_count or 0
-                    output_tokens = response.usage_metadata.candidates_token_count or 0
+                    input_tokens += response.usage_metadata.prompt_token_count or 0
+                    output_tokens += response.usage_metadata.candidates_token_count or 0
                     output_tokens += response.usage_metadata.thoughts_token_count or 0
 
                 elif self.provider == "openai":
@@ -83,8 +83,8 @@ class LLM:
                     response = self.client.chat.completions.create(**kwargs)
                     response_text = response.choices[0].message.content
 
-                    input_tokens = response.usage.prompt_tokens
-                    output_tokens = response.usage.completion_tokens
+                    input_tokens += response.usage.prompt_tokens
+                    output_tokens += response.usage.completion_tokens
 
                 elif self.provider == "anthropic":
                     response = self.client.messages.create(
@@ -97,6 +97,8 @@ class LLM:
                     response_text = response.content[0].text
                     input_tokens += response.usage.input_tokens
                     output_tokens += response.usage.output_tokens
+
+                break
 
             except Exception as e:
                 logging.error(f"Error during LLM generation: {e}")

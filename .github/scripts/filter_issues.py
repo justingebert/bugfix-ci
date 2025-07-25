@@ -91,6 +91,7 @@ if not issues_to_process:
     print("No issues to process")
     sys.exit(0)
 
+print(f"Found {len(issues_to_process)} issues to process")
 issues_json = json.dumps(issues_to_process)
 print(issues_json)
 with open(os.environ.get("GITHUB_OUTPUT"), "a") as f:

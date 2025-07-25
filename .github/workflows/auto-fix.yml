@@ -1,8 +1,8 @@
 name: Auto Bugfix CI
 on:
   workflow_dispatch: {}
-  schedule:
-     - cron: "*/5 * * * *"
+#  schedule:
+#     - cron: "*/5 * * * *"
   issues:
     types: [ opened, labeled ]
   issue_comment:

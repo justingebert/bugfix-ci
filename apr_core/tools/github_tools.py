@@ -85,8 +85,8 @@ def build_pr_body(context):
     pr_body += "\n## APR Data\n"
     pr_body += f"""
                 Attempts: {context['state']['current_attempt']}\n
-                Tokens used: {context['metrics']['tokens']}\n
-                Time taken: {context['state']['current_attempt']}\n
                 """
+                # Tokens used: {context['metrics']['tokens']}\n
+                # Time taken: {context['state']['current_attempt']}\n
 
     return pr_body

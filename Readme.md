@@ -1,5 +1,5 @@
 # APR Core 🛠️
-_A lightweight Automated Program Repair system that **finds, patches & PRs bugs** in your repository using GitHub Actions by adding one workflow file._
+_A lightweight Automated Program Repair system that **finds, patches & PRs bugs** in your repository using GitHub Actions._
 
 ---
 
@@ -17,8 +17,8 @@ _A lightweight Automated Program Repair system that **finds, patches & PRs bugs*
 ## Quick start
 
 1. **Add a workflow**
-   - Copy the workflow file from this repository `.github/workflows/auto-fix.yml`
-   - Copy the filter script from `.github/scripts/filter_issues.py`
+   - Copy the workflow file from this repository `.github/workflows/auto-fix.yml`.
+   - Copy the filter script from `.github/scripts/filter_issues.py`.
 
 2. **Configure required secrets** in your repository:
    - Go to Settings > Secrets and variables > Actions
@@ -31,23 +31,27 @@ _A lightweight Automated Program Repair system that **finds, patches & PRs bugs*
    - Click "Save"
 
 4. **Customize behavior** (optional):
-   - Create a `bugfix.yml` in your repository root
-   - Override default settings 
+   - Create a `bugfix.yml` in your repository root.
+   - Override default settings like `label`, `model`, and `max_attempts`.
 
 ## How It Works
 
-APR Core operates in sequential stages:
+APR Core operates in sequential stages within a GitHub Actions workflow:
 
-1. **Localize**: Identifies the source of the bug in your codebase
-2. **Fix**: Generates patches using LLM-based code synthesis
-3. **Build**: Verifies that the code builds successfully with the proposed fix
-4. **Test**: Runs tests to validate the proposed fixes
-5. **Apply**: Commits changes to the branch and pushes them
-6. **Report**: Creates a pull request with the fix
+1. **Localize**: Identifies potential buggy files using information from the bug report (e.g., issue body, comments).
+2. **Fix**: Generates patches using an LLM. It constructs a detailed prompt containing the source code of suspicious files and feedback from previous failed attempts.
+3. **Build**: Verifies that the code builds successfully with the proposed fix. For Python projects, this may involve syntax checking or code formatting.
+4. **Test**: Runs the project's test suite to validate the proposed fix.
+5. **Apply**: If the fix is successful, the changes are committed to a new branch.
+6. **Report**: A pull request is created with the fix, linking it to the original issue.
 
 Each issue with the configured label will be processed automatically, with multiple fix attempts if needed. The system provides feedback between attempts to improve repair success rates.
 
 ## Local development
-- [ ] TODO complete this section 
-- .env for environment variables 
-- docker-compose for local development
+- Create a `.env` file for environment variables:
+```dotenv
+GITHUB_TOKEN=your_personal_access_token
+GITHUB_REPOSITORY=owner/repo_name
+LLM_API_KEY=your_llm_api_key
+```
+- Use the `run_local.sh` script to execute the repair process on your local machine. This requires Docker to be installed 
